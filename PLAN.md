@@ -24,14 +24,14 @@ AI로 만든 노래를 모아 듣는 음악 스트리밍 웹 서비스. 멜론�
 
 ## 4. 기술 스택
 
-| 영역 | 선택 |
-|---|---|
-| 빌드 | Vite + React + TypeScript |
-| 스타일 | Tailwind CSS v4 (`@tailwindcss/vite`) |
-| 라우팅 | React Router (`react-router-dom`) |
-| 전역 상태 | Zustand (플레이어 상태) |
-| 재생 | HTML5 `<audio>` |
-| 백엔드 (3단계~) | Supabase — Auth, Postgres, Storage |
+| 영역            | 선택                                  |
+| --------------- | ------------------------------------- |
+| 빌드            | Vite + React + TypeScript             |
+| 스타일          | Tailwind CSS v4 (`@tailwindcss/vite`) |
+| 라우팅          | React Router (`react-router-dom`)     |
+| 전역 상태       | Zustand (플레이어 상태)               |
+| 재생            | HTML5 `<audio>`                       |
+| 백엔드 (3단계~) | Supabase — Auth, Postgres, Storage    |
 
 ## 5. 폴더 구조
 
@@ -58,11 +58,13 @@ public/
 ## 6. 단계별 로드맵
 
 ### 0단계 — 세팅
+
 - [x] Vite + React + TS 프로젝트 생성
 - [x] Tailwind, React Router, Zustand 설치
 - [x] 폴더 구조, 기획서, 첫 커밋
 
 ### 1단계 — 레이아웃과 플레이어 (DB 없음)
+
 - [ ] 레이아웃: 사이드바 + 본문 + 하단 고정 플레이어
 - [ ] `types/track.ts`: Track 타입
 - [ ] `public/samples`의 mp3로 만든 샘플 곡 데이터
@@ -71,16 +73,19 @@ public/
 - [ ] 페이지를 이동해도 재생이 끊기지 않는지 확인
 
 ### 2단계 — 차트
+
 - [ ] 차트 TOP 100 (좋아요·재생 수 기준)
 - [ ] 좋아요
 - [ ] 장르·AI 툴 필터
 
 ### 3단계 — 회원과 업로드 (Supabase)
+
 - [ ] 로그인
 - [ ] 곡 업로드 (음원 + 커버 + 권리 확인)
 - [ ] 내 플레이리스트
 
 ### 4단계 — 차별화와 마무리
+
 - [ ] 프롬프트 공개
 - [ ] 검색
 - [ ] 모바일 대응
@@ -91,13 +96,13 @@ public/
 type Track = {
   id: string
   title: string
-  artist: string        // 업로더 닉네임
+  artist: string // 업로더 닉네임
   coverUrl: string
   audioUrl: string
   durationSec: number
   genre: string
   aiTool: 'suno' | 'udio' | 'other'
-  prompt?: string       // 공개한 경우만
+  prompt?: string // 공개한 경우만
   likes: number
   plays: number
   createdAt: string
@@ -106,13 +111,14 @@ type Track = {
 
 ## 8. AI 도구 역할 분담
 
-| 도구 | 맡는 일 |
-|---|---|
+| 도구        | 맡는 일                                                          |
+| ----------- | ---------------------------------------------------------------- |
 | Claude Code | 설계, 상태 관리·백엔드 연동 등 어려운 로직, 버그 분석, 코드 리뷰 |
-| Antigravity | 화면·컴포넌트 대량 구현, 브라우저로 확인하는 작업 |
-| Cursor | 자잘한 수정, 자동완성 |
+| Antigravity | 화면·컴포넌트 대량 구현, 브라우저로 확인하는 작업                |
+| Cursor      | 자잘한 수정, 자동완성                                            |
 
 작업 규칙:
+
 - 한 기능은 한 도구가 끝까지 맡는다. 같은 파일을 두 도구가 동시에 고치지 않는다
 - 작업 하나가 끝나면 커밋한다
 - 요청은 작게 쪼갠다 ("플레이어 만들어줘" ✕ → "playerStore에 다음 곡 기능 추가" ○)

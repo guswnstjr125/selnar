@@ -1,32 +1,23 @@
-# React + TypeScript + Vite
+# selnar
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+AI로 만든 노래를 모아 듣는 음악 스트리밍 웹 서비스.
 
-Currently, two official plugins are available:
+기획, 기능 목록, 단계별 로드맵은 [PLAN.md](PLAN.md), AI 도구 작업 규칙은 [AGENTS.md](AGENTS.md)에 있다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 실행
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+| 명령             | 하는 일                    |
+| ---------------- | -------------------------- |
+| `npm run dev`    | 개발 서버 실행             |
+| `npm run build`  | 타입 검사 후 프로덕션 빌드 |
+| `npm run lint`   | oxlint 검사                |
+| `npm run format` | Prettier로 코드 정리       |
+
+## 스택
+
+Vite, React, TypeScript, Tailwind CSS v4, React Router, Zustand
