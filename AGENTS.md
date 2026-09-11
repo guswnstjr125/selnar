@@ -1,6 +1,6 @@
 # selnar 작업 규칙
 
-작업 전에 반드시 [PLAN.md](PLAN.md)를 읽는다. 기능 목록, 폴더 구조, 단계별 로드맵이 거기 있다.
+작업 전에 반드시 [PLAN.md](PLAN.md)와 [FIGMA_SPEC.md](FIGMA_SPEC.md)를 읽는다. 기능 목록, 폴더 구조, Figma 디자인 명세, 단계별 로드맵이 거기 있다.
 
 ## 코드
 
