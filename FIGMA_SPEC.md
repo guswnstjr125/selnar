@@ -2,7 +2,7 @@
 
 AI 음악 스트리밍 웹 서비스 `Selnar`의 UI/UX를 Figma 플러그인 스크립트(`manifest.json` + `code.js`)로 자동 생성하기 위한 명세서입니다.
 
-- **문서 버전:** v1.0 · 2026-09-14
+- **문서 버전:** v1.2 · 2026-09-14
 - **저장소 위치:** `github.com/guswnstjr125/selnar` → `/figma-plugin/`
 
 **문서 관계**
@@ -59,7 +59,8 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 ### 0) 공통 셸
 
 **좌측 사이드바 (240px)**
-로고(`Selnar`) / 메인 네비(홈 · 차트 · 보관함) / [곡 업로드] 주요 액션 버튼
+로고(`public/brand/logo.png` — 투명 배경 금색 모노그램 + `SELNAR`) / 메인 네비(홈 · 차트 · 보관함) / [곡 업로드] 주요 액션 버튼
+텍스트 `Selnar`로 로고를 대체하지 않는다. 흰 배경본(`logo-on-light.png`)은 다크 셸에 쓰지 않는다. 사용 규칙은 `PLAN.md` §12.1.
 
 **상단 헤더**
 검색창 (placeholder: `곡명, 창작자, 프롬프트 키워드 검색`) / 로그인 · 프로필 버튼
@@ -211,6 +212,7 @@ Tailwind 변환 규칙은 `PLAN.md` §6.2를 따릅니다.
 [Color — Brand]
 color/brand/primary      : #10B981   Emerald 500 · 메인 포인트
 color/brand/secondary    : #06B6D4   Cyan 500
+color/brand/logo         : #C09B4A   로고 금색. 마크를 다시 칠할 때만
 color/text/on-brand      : #052E20   ★ primary 배경 위 텍스트 전용
 
 [Color — Surface]
@@ -328,4 +330,6 @@ code.js 구성 계층:
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.2 | 2026-09-14 | 사이드바 로고를 투명 누끼본(`logo.png`)으로 고정 |
+| v1.1 | 2026-09-14 | 로고 에셋·`color/brand/logo` 반영. 사이드바 로고를 이미지로 고정 |
 | v1.0 | 2026-09-14 | 기준 문서로 재작성. 이전 판(v0.x) 전부 폐기. §3.1 프레임 목록 · §6 구현 주의사항 정리, 문서 내 이력 블록 제거 |

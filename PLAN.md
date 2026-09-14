@@ -5,7 +5,7 @@
 
 - **서비스명:** Selnar (셀나르)
 - **한 줄 정의:** AI로 만든 음악을 올리고, 듣고, 차트로 확인하는 곳
-- **문서 버전:** v1.0 · 2026-09-14
+- **문서 버전:** v1.2 · 2026-09-14
 - **저장소:** github.com/guswnstjr125/selnar
 
 **문서 관계**
@@ -180,7 +180,9 @@ src/
 export const BRAND = {
   name: 'Selnar',
   nameKo: '셀나르',
+  wordmark: 'SELNAR',
   tagline: 'AI가 만든 음악을 듣는 곳',
+  logoUrl: '/brand/logo.png',
 } as const;
 ```
 
@@ -391,8 +393,20 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 | **AI 툴 뱃지 컬러** — Suno/Udio 실제 브랜드 컬러를 쓰고 있음. 상표 이슈 소지가 있어 자체 팔레트로 교체할지 | D단계 중 |
 | **`ai_tool = 'other'` 처리** — 회색 중립 뱃지로 갈지, 툴 목록을 더 열지 | D단계 중 |
 | **신고 접수 경로** — 이메일 / 구글폼 | 5단계 배포 전 |
-| **로고** — 이름이 음악 느낌이 없어 로고나 슬로건에서 보완 필요 | 미정 |
 | **도메인** — `selnar.com` / `.io` / `.app` / `.kr` 확보 여부 미확인. KIPRIS 상표 조회도 아직 | 미정 |
+
+### 12.1 로고 — 확정
+
+금색 라인 모노그램 + 워드마크 `SELNAR`. 화면의 로고 자리에는 이 파일을 쓴다. 텍스트 `Selnar`로 대체하지 않는다.
+
+| 파일 | 용도 |
+|---|---|
+| `public/brand/logo.png` | **공식.** 투명 배경(누끼). 사이드바 · 스플래시 · 파비콘 등 다크 셸 |
+| `public/brand/logo-on-light.png` | 흰 배경 원본. 밝은 지면 · 인쇄용 |
+
+- 워드마크 표기는 `SELNAR`다.
+- 로고 금색은 `FIGMA_SPEC.md` §4 `color/brand/logo` (#C09B4A). primary(에메랄드)로 다시 칠하지 않는다.
+- 다크 셸에는 투명본만 쓴다. 흰 배경 원본을 그대로 올리지 않는다.
 
 ---
 
@@ -400,4 +414,6 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.2 | 2026-09-14 | 로고 누끼본을 공식 에셋으로 지정 (`logo.png` 투명, `logo-on-light.png` 흰 배경) |
+| v1.1 | 2026-09-14 | 로고 확정 (`public/brand/logo.png`). §12 미정 항목에서 제외 |
 | v1.0 | 2026-09-14 | 기준 문서로 재작성. 이전 판(v0.x) 전부 폐기. §5.3 화면 전환 맵 신규. 문서 내 이력 블록 제거 |

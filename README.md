@@ -13,8 +13,8 @@ AI로 만든 음악을 올리고, 듣고, 차트로 확인하는 곳.
 
 | 문서 | 정하는 것 | 버전 |
 |---|---|---|
-| [`PLAN.md`](./PLAN.md) | 기능 범위 · 데이터 모델 · 정책 · 화면 전환 · 로드맵 | v1.0 |
-| [`FIGMA_SPEC.md`](./FIGMA_SPEC.md) | 화면 표현 · 디자인 토큰 · 프레임 목록 | v1.0 |
+| [`PLAN.md`](./PLAN.md) | 기능 범위 · 데이터 모델 · 정책 · 화면 전환 · 로드맵 | v1.2 |
+| [`FIGMA_SPEC.md`](./FIGMA_SPEC.md) | 화면 표현 · 디자인 토큰 · 프레임 목록 | v1.2 |
 
 **충돌하면 `PLAN.md`가 이깁니다.** `FIGMA_SPEC.md`는 화면 표현만 다루고, 거기 없는 데이터를 그리지 않습니다.
 
@@ -42,11 +42,13 @@ AI로 만든 음악을 올리고, 듣고, 차트로 확인하는 곳.
 ├─ README.md
 ├─ PLAN.md
 ├─ FIGMA_SPEC.md
-├─ figma-plugin/        D단계 산출물
+├─ public/brand/logo.png           공식 로고 · 투명 (PLAN.md §12.1)
+├─ public/brand/logo-on-light.png  흰 배경 원본
+├─ figma-plugin/          D단계 산출물
 │  ├─ manifest.json
 │  ├─ code.js
 │  └─ README.md
-└─ src/                 PLAN.md §6 참조
+└─ src/                   PLAN.md §6 참조
 ```
 
 ---
