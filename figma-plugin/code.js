@@ -1,5 +1,5 @@
 // Selnar Design Renderer
-// 기준 문서: FIGMA_SPEC.md v1.2 §4(토큰) · §3.1(프레임) · §6(아키텍처)
+// 기준 문서: FIGMA_SPEC.md v1.4 §4(토큰) · §3.1(프레임) · §6(아키텍처)
 //
 // 이 파일은 Foundation 단계까지만 구현합니다.
 // 화면 빌더(buildHome 등)는 §7-2 검증 게이트를 통과한 뒤 얹습니다.
@@ -517,11 +517,11 @@ async function main() {
     const rows = AL({ name: 'TrackRows', dir: 'V', gap: 4, align: 'MIN' });
     rows.appendChild(await buildTrackRow(K, {
       rank: 1, title: '새벽 세 시의 네온', artist: '김하늘',
-      tool: 'Suno', genre: 'Synthpop', duration: '3:24', likes: 182, isNew: true,
+      tool: 'Suno', genre: '일렉트로닉', duration: '3:24', likes: 182, isNew: true,
     }));
     rows.appendChild(await buildTrackRow(K, {
       rank: 2, title: '비 오는 날의 발라드', artist: '이준서',
-      tool: 'Udio', genre: 'Ballad', duration: '4:02', likes: 147,
+      tool: 'Udio', genre: '발라드', duration: '4:02', likes: 147,
     }));
     shelf.appendChild(rows);
 

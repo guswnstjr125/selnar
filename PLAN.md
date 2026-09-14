@@ -5,7 +5,7 @@
 
 - **서비스명:** Selnar (셀나르)
 - **한 줄 정의:** AI로 만든 음악을 올리고, 듣고, 차트로 확인하는 곳
-- **문서 버전:** v1.3 · 2026-09-14
+- **문서 버전:** v1.4 · 2026-09-14
 - **저장소:** github.com/guswnstjr125/selnar
 
 **문서 관계**
@@ -353,7 +353,7 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 0 | Vite + React + TS + Tailwind 세팅, 폴더 구조, 첫 커밋 | **로컬 완료 · 원격 push 확인 필요** |
+| 0 | Vite + React + TS + Tailwind 세팅, 폴더 구조, 첫 커밋 | **완료 (원격 push 및 브랜치 동기화 확인)** |
 | **D** | **Figma 디자인 확정** — 토큰 생성, 9개 화면 PC/Mobile 렌더, 검수 | **진행 중** |
 | 1 | 더미 데이터 6곡, 레이아웃, 홈 · 차트 · 곡 상세, **끊기지 않는 플레이어** | 코드 존재 (D단계 확정 후 토큰 교체) |
 | 2 | 장르 필터, 검색, 좋아요(로컬) | |
@@ -363,7 +363,7 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 | 5 | 배포(Vercel), 실제 곡으로 시드 채우기 | |
 | 6 | (선택) 다운로드, 순위 변동, 파형 시각화, 관리자 화면 · 신고 | |
 
-**0단계 미확인 사항** — 저장소에 커밋이 확인되지 않았습니다. 로컬에만 있고 push가 안 된 상태로 추정됩니다. D단계 산출물(`/figma-plugin/`)을 올릴 곳이 필요하므로 **먼저 해결합니다.** 확인 후 이 문단과 위 상태 칸을 정리합니다.
+**0단계 확인 완료** — 원격 저장소(`origin`) 푸시 및 브랜치(`main`, `develop`, `feature/docs`) 동기화가 확인되었습니다.
 
 **D단계 위치** — 1단계 코드는 이미 존재합니다. Figma를 처음부터 다시 그리느라 1단계를 멈추지 않습니다. D단계 산출물은 **토큰 값과 레이아웃 치수**이고, 그것만 기존 코드에 주입합니다.
 
@@ -396,7 +396,7 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 4. 모바일에서 플레이어가 깨지지 않는다
 5. `PLAN.md`와 `FIGMA_SPEC.md`만 읽고도 다른 사람(또는 다른 AI 도구)이 이어서 작업할 수 있다 — **로컬 경로나 이전 대화 참조 없이**
 
-> 5번은 저장소에 코드가 올라가 있어야 성립합니다. 0단계 push 미완이 이 기준에 직접 걸립니다.
+> 5번은 저장소에 코드가 올라가 있어야 성립합니다. 0단계 push 및 원격 동기화 완료로 선행 조건이 충족되었습니다.
 
 ---
 
@@ -427,6 +427,7 @@ playlist_tracks (playlist_id, track_id, position, added_at, primary key (playlis
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.4 | 2026-09-14 | 0단계 원격 push 확인 완료 반영, 로드맵 상태 갱신 |
 | v1.3 | 2026-09-14 | 설계 공백 확정 반영 — 장르 9종·/upload 수정 모드·Queue 패널·other 차트 처리·토스트 정책·§12 미확정 항목 정리 |
 | v1.2 | 2026-09-14 | 로고 누끼본을 공식 에셋으로 지정 (`logo.png` 투명, `logo-on-light.png` 흰 배경) |
 | v1.1 | 2026-09-14 | 로고 확정 (`public/brand/logo.png`). §12 미정 항목에서 제외 |

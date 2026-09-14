@@ -2,7 +2,7 @@
 
 AI 음악 스트리밍 웹 서비스 `Selnar`의 UI/UX를 Figma 플러그인 스크립트(`manifest.json` + `code.js`)로 자동 생성하기 위한 명세서입니다.
 
-- **문서 버전:** v1.3 · 2026-09-14
+- **문서 버전:** v1.4 · 2026-09-14
 - **저장소 위치:** `github.com/guswnstjr125/selnar` → `/figma-plugin/`
 
 **문서 관계**
@@ -211,11 +211,11 @@ Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · P
 
 검색 · 로그인 · 플레이리스트 · 창작자 채널은 PC 레이아웃을 세로 스택하면 되므로 모바일 프레임을 만들지 않습니다.
 
-**렌더 순서** — 한 번에 21장을 켜지 않습니다. 죽으면 어디서 죽었는지 못 찾습니다.
+**렌더 순서** — 한 번에 23장을 켜지 않습니다. 죽으면 어디서 죽었는지 못 찾습니다.
 
-1. Foundation (토큰 + 컴포넌트 12종) → 변수 바인딩이 실제로 붙었는지 검증
+1. Foundation (토큰 + 컴포넌트 13종) → 변수 바인딩이 실제로 붙었는지 검증
 2. `PC/01` `PC/02` `PC/03` → 컴포넌트가 실전에서 검증되는 지점. **치수 변경은 여기서 전부** 끝냅니다
-3. 나머지 PC 12장
+3. 나머지 PC 14장
 4. Mobile 6장
 
 세로 치수는 AutoLayout hug가 결정하므로 명세에 적지 않습니다.
@@ -291,7 +291,9 @@ size/sidebar 240 · size/cover/player 56 · size/cover/row 40 · size/cover/hero
 
 ---
 
-## 5.1 숫자 표기 기준
+## 5. 기술 사양 및 표기 기준
+
+### 5.1 숫자 표기 기준
 
 재생수 · 좋아요 수 · 총 재생수에 공통 적용합니다.
 
@@ -305,7 +307,7 @@ size/sidebar 240 · size/cover/player 56 · size/cover/row 40 · size/cover/hero
 차트 테이블 `♥ 수` 컬럼 폭은 최대 `1.2K` 기준(약 5자)으로 산정합니다.
 구현 시 `src/lib/format.ts`의 `formatCount()` 함수로 통일합니다.
 
----
+### 5.2 오디오 기술 사양
 
 **재생** — HTML5 `<audio>` 네이티브 API + Zustand. 외부 라이브러리 없음. 페이지 이동 간 끊김 없는 재생을 위해 **단일 인스턴스**로 관리. 상세 설계는 `PLAN.md` §7.
 
@@ -332,8 +334,8 @@ code.js 구성 계층:
 2. resolveFont()    Pretendard → Noto Sans KR → Inter 폴백
 3. 저수준 헬퍼       AL(AutoLayout), hex, solid, thumbFill, pad
 4. buildTokens()    토큰 생성 + 바인딩 컨텍스트 → K.C() K.R() K.T() K.S()
-5. 공통 컴포넌트     Sidebar, Header, BottomPlayer, MiniPlayer, TrackRow,
-                    TrackCard, Badge, Button, EmptyState, Input, Switch, Toast
+5. 공통 컴포넌트     Sidebar, Header, BottomPlayer, QueuePanel, MiniPlayer,
+                    TrackRow, TrackCard, Badge, Button, EmptyState, Input, Switch, Toast
 6. 화면 빌더         buildHome / Chart / TrackDetail / Upload / Library /
                     Artist / Search / Playlist / Auth  (각 PC · Mobile)
 7. main()           토큰 생성 → plan 배열 순회 → 그리드 자동 배치
@@ -353,7 +355,7 @@ code.js 구성 계층:
    - **하드코딩 금지** — 색상 `K.C()`, 라운드 `K.R()`, 타이포 `K.T()`, 간격 `K.S()` 필수 바인딩
    - 빈 상태 · 로딩 상태도 함께 렌더합니다. 정상 상태만 그린 디자인은 구현 단계에서 반드시 막힙니다.
 2. **검증** — Figma 데스크톱 → `Plugins` → `Development` → 플러그인 실행 → 캔버스 확인
-   - 첫 검증 게이트: 사각형 하나에 `color/brand/primary`를 바인딩하고, Figma에서 그 변수 값을 바꿔 사각형이 따라오는지 확인합니다. 안 따라오면 하드코딩된 것이고, 그 상태로 21장을 그리면 전부 다시 만들어야 합니다.
+   - 첫 검증 게이트: 사각형 하나에 `color/brand/primary`를 바인딩하고, Figma에서 그 변수 값을 바꿔 사각형이 따라오는지 확인합니다. 안 따라오면 하드코딩된 것이고, 그 상태로 23장을 그리면 전부 다시 만들어야 합니다.
 3. **구현 이관** — 확정된 토큰을 `src/index.css`의 `@theme`에 주입하고, 화면을 `src/features/` 아래 컴포넌트로 1:1 변환
    - 공통 컴포넌트는 Figma **Component Set**으로 만듭니다. Variant 구성이 그대로 S단계 Storybook stories가 되므로, "이게 story 하나가 된다"를 기준으로 쪼갭니다 (`PLAN.md` §6.3).
    - 타이포는 Figma Variables가 폰트 크기 · 웨이트를 직접 받지 못합니다. `K.T()`는 **Text Style을 만들어 적용**하는 방식으로 구현합니다. 색상 · 라운드 · 간격과 바인딩 방식이 다르다는 점을 전제로 짭니다.
@@ -365,6 +367,7 @@ code.js 구성 계층:
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.4 | 2026-09-14 | §5 헤더 계층 정상화(5.1 숫자 표기, 5.2 오디오 사양), §3.1 컴포넌트·프레임 수치 일치(13종, PC 17장, 총 23장), §6 QueuePanel 추가 |
 | v1.3 | 2026-09-14 | 설계 공백 확정 반영 — QueuePanel 추가, 차트 필터/⋯메뉴/other처리, 로그인 Google버튼, 보관함 플리생성흐름, 플리 인라인편집, 검색 프롬프트탭, 숫자표기 §5.1, EmptyState variant 3종, 토큰 변경 없음 명시 |
 | v1.2 | 2026-09-14 | 사이드바 로고를 투명 누끼본(`logo.png`)으로 고정 |
 | v1.1 | 2026-09-14 | 로고 에셋·`color/brand/logo` 반영. 사이드바 로고를 이미지로 고정 |
