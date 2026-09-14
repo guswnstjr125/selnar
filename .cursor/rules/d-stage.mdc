@@ -1,0 +1,17 @@
+---
+description: D단계(Figma 설계 중) — 앱 코드 수정 금지
+alwaysApply: true
+---
+
+# 현재 단계: D (Figma 디자인 확정, 진행 중)
+
+개발(1단계)은 아직 하지 않는다. D단계가 끝날 때까지 앱을 구현하지 않는다.
+
+- `src/` 등 앱 소스를 수정하지 않는다. 기능 구현 · 리팩터 · 스타일 주입을 하지 않는다.
+- 허용 범위: `PLAN.md`, `FIGMA_SPEC.md`, `README.md`, `AGENTS.md`, `.cursor/rules/`, `figma-plugin/`.
+- D단계 산출물은 `/figma-plugin/`(manifest.json, code.js)과 확정된 토큰·레이아웃 치수다.
+- 사용자가 코드 수정을 명시하지 않으면 앱 코드를 건드리지 않는다.
+
+## MVP에 없음 — 그리거나 만들지 말 것
+
+음원 다운로드, 순위 변동 ▲▼, 관리자(`/admin`), 실시간 차트, 라이트 테마, 다중 선택 액션 바, 파형 시각화.
