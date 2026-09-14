@@ -2,7 +2,7 @@
 
 AI 음악 스트리밍 웹 서비스 `Selnar`의 UI/UX를 Figma 플러그인 스크립트(`manifest.json` + `code.js`)로 자동 생성하기 위한 명세서입니다.
 
-- **문서 버전:** v1.2 · 2026-09-14
+- **문서 버전:** v1.3 · 2026-09-14
 - **저장소 위치:** `github.com/guswnstjr125/selnar` → `/figma-plugin/`
 
 **문서 관계**
@@ -75,6 +75,13 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 
 > 다운로드 버튼 없음. 우측은 반복 · 셔플 · 볼륨 · 대기열 4개입니다.
 
+**재생 대기열(Queue) 패널** — 대기열 토글 클릭 시 플레이어 위 오버레이 드롭다운으로 표시.
+
+- 카드형 패널, 트랙 목록만 나열 (현재 재생 곡 하이라이트)
+- 드래그 핸들 없음 — 드래그 재정렬은 6단계 후보
+- 패널 상태는 UI-only 로컬 상태. `playerStore`에 포함하지 않음
+- `Foundation` 컴포넌트에 `QueuePanel` 추가 (`§3.1` 프레임 목록 반영)
+
 **모바일 플레이어** — 미니바(64px) 탭 시 풀스크린으로 확장. 미니바에는 커버 · 제목 · 재생 버튼만.
 
 ---
@@ -89,12 +96,16 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 ### 2) 차트 `/chart` — `buildChartPC`, `buildChartMobile`
 
 - **필터 탭** — `종합 TOP 100` | `Suno TOP 50` | `Udio TOP 50` | `장르별`
+  - 장르별 하위 필터: `케이팝` · `발라드` · `힙합` · `R&B` · `팝(POP)` · `J-POP` · `인디` · `일렉트로닉` · `기타`
+  - `ai_tool = 'other'` 곡은 `종합 TOP 100`에만 노출. `Suno TOP 50` / `Udio TOP 50` 탭에서 제외
 - **헤더 액션** — [전체 재생] 버튼 하나. 체크박스 · 다중 선택 없음
 - **갱신 표기** — 우상단에 `매일 00:00 갱신 · 기준 YYYY-MM-DD` 캡션
 - **트랙 테이블 행 컬럼**
 
   | 순위 | 커버 40×40 | 제목 (+ `NEW`) | 창작자 | AI 툴 뱃지 | 장르 | 재생시간 | ♥ 수 | ⋯ |
 
+  - ♥ 수 컬럼 폭은 최대 `1.2K` 기준(약 5자)으로 산정
+- **⋯ 컨텍스트 메뉴 항목** — `플레이리스트에 담기` · `다음 곡으로 추가` · `창작자 채널 가기` · `공유(링크 복사)`. 신고 항목 없음
 - **모바일** — 테이블 대신 리스트 행. 순위 · 커버 · 제목/창작자 2줄 · 툴 뱃지만 남기고 나머지 생략
 
 > 순위 변동 ▲▼ 컬럼 없음. 스냅샷 데이터가 없어 `-`만 나옵니다. 6단계에서 복원.
@@ -127,7 +138,8 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 ### 5) 내 보관함 `/me` — `buildLibraryPC`, `buildLibraryMobile`
 
 - **탭** — `좋아요한 곡` | `내 플레이리스트` | `내가 업로드한 곡`
-- 업로드한 곡 행에는 [수정] [비공개 전환] 액션
+- 업로드한 곡 행에는 [수정] [비공개 전환] 액션. [수정] 클릭 시 `/upload?edit=:id`로 이동
+- **플레이리스트 생성** — [+ 새 플레이리스트] 클릭 시 즉시 "새 플레이리스트" 기본 이름으로 생성 후 `/playlist/:id`로 이동. 모달·인풋 팝업 없음. `/playlist/:id` 상세 페이지 제목 클릭 시 인라인 수정 모드 진입
 - 빈 상태 일러스트 + CTA 각 탭별 1종씩
 
 > `최근 재생` · `다운로드 내역` 탭 없음.
@@ -143,19 +155,21 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 
 - 상단에 검색어 + 결과 수
 - **결과 탭** — `곡` | `창작자` | `프롬프트`
+  - `프롬프트` 탭: 매칭된 프롬프트 스니펫을 검색어 하이라이트로 표시 + 해당 곡 카드 정보(커버 · 제목 · 창작자) 병기. 카드 클릭 시 `/track/:id`로 이동
 - 무결과 상태 — "다른 키워드로 검색해 보세요" + 인기 검색어 칩
 
 ### 8) 플레이리스트 상세 `/playlist/:id` — `buildPlaylistPC`
 
 - 헤더 — 커버(4분할 모자이크), 제목, 만든이, 곡 수 / 총 재생시간, [전체 재생] [좋아요]
 - 곡 목록 — 순서 번호 + 드래그 핸들(본인 것일 때)
+- **제목 인라인 편집** — 제목 영역 hover 시 편집 아이콘 노출, 클릭 시 인라인 input으로 전환. `PC/08-Playlist` 프레임에 hover 상태 · edit 상태 2종 추가
 
 ### 9) 로그인 · 회원가입 `/login` — `buildAuthPC`
 
 - 중앙 정렬 카드 (최대 400px). 사이드바 · 플레이어 없는 **단독 레이아웃**
 - 탭 전환: `로그인` / `회원가입`
 - 필드 — 이메일, 비밀번호 (회원가입 시 + `username`, 표시명)
-- 소셜 로그인 버튼 자리 1개 (Google) — 3단계에서 결정
+- **소셜 로그인 버튼 (Google)** — 비활성(disabled) 상태로 지금 그립니다. 클릭 이벤트 없음, 시각적 자리만 확정. 3단계에서 활성화
 
 > **관리자 화면(`/admin` 계열)은 그리지 않습니다.** MVP에서는 Supabase Table Editor로 대체합니다 (`PLAN.md` §4 · §10).
 
@@ -165,13 +179,17 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 
 Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · PC (1920)` / `02 · Mobile (390)`.
 
-**00 · Foundation** — 프레임이 아니라 컴포넌트 12종
+**00 · Foundation** — 프레임이 아니라 컴포넌트 13종
 
-`Sidebar` `Header` `BottomPlayer` `MiniPlayer` `TrackRow` `TrackCard` `Badge` `Button` `EmptyState` `Input` `Switch` `Toast`
+`Sidebar` `Header` `BottomPlayer` `QueuePanel` `MiniPlayer` `TrackRow` `TrackCard` `Badge` `Button` `EmptyState` `Input` `Switch` `Toast`
 
-작은 것부터 만듭니다. `Badge` → `Button` → `Input` → `TrackRow` → `TrackCard` → 셸 3종 → `EmptyState`.
+- `QueuePanel` — 대기열 오버레이 드롭다운. 트랙 목록, 드래그 핸들 없음
+- `EmptyState` — variant 3종: `default`(일반 빈 상태) · `not-found`(404, 존재하지 않는 페이지) · `removed`(삭제된 곡). 에러 상태는 별도 프레임 없이 이 컴포넌트로 처리
+- `Toast` — variant 2종: `success` · `error`. 사용 범위는 `PLAN.md §10` 토스트 정책을 따름
 
-**01 · PC (1920)** — 15장
+작은 것부터 만듭니다. `Badge` → `Button` → `Input` → `Toast` → `EmptyState` → `TrackRow` → `TrackCard` → 셸 3종(`Sidebar` · `Header` · `BottomPlayer`) → `QueuePanel`.
+
+**01 · PC (1920)** — 17장
 
 | 프레임 | 비고 |
 |---|---|
@@ -180,11 +198,12 @@ Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · P
 | `PC/03-TrackDetail` | 프롬프트 공개 |
 | `PC/03-TrackDetail-Locked` | `is_prompt_public = false` 잠금 |
 | `PC/04-Search` / `PC/04-Search-Empty` | 결과 있음 / 무결과 |
-| `PC/05-Auth-Login` / `PC/05-Auth-Signup` | 셸 없는 단독 레이아웃 |
+| `PC/05-Auth-Login` / `PC/05-Auth-Signup` | 셸 없는 단독 레이아웃. Google 버튼 비활성 표시 |
 | `PC/06-Upload-Empty` / `-Filled` / `-Progress` | 상태 3종 |
 | `PC/07-Library` / `PC/07-Library-Empty` | 좋아요 탭 기준 / 빈 상태 대표 1장 |
-| `PC/08-Playlist` | |
+| `PC/08-Playlist` / `PC/08-Playlist-TitleEdit` | 기본 / 제목 인라인 편집 상태 |
 | `PC/09-Artist` | |
+| `PC/QueuePanel` | BottomPlayer 위 오버레이 드롭다운 |
 
 **02 · Mobile (390)** — 6장
 
@@ -257,6 +276,8 @@ size/player/pc 80 · size/player/mobile 64
 size/sidebar 240 · size/cover/player 56 · size/cover/row 40 · size/cover/hero 300
 ```
 
+> **토큰 값 변경 없음 (v1.3 확정)** — `color/badge/suno #FF5E3A`, `color/badge/udio #7C3AED` 현행 유지. 상표 이슈 재검토는 5단계(배포) 전으로 이월. `ai_tool='other'` 뱃지는 `color/badge/other #525252` 회색 중립 유지.
+
 ### 4.1 대비 검증 (WCAG AA 4.5:1 기준)
 
 | 조합 | 대비 | 판정 |
@@ -270,7 +291,21 @@ size/sidebar 240 · size/cover/player 56 · size/cover/row 40 · size/cover/hero
 
 ---
 
-## 5. 오디오 기술 사양
+## 5.1 숫자 표기 기준
+
+재생수 · 좋아요 수 · 총 재생수에 공통 적용합니다.
+
+| 범위 | 표기 | 예시 |
+|---|---|---|
+| 999 이하 | 정수 그대로 | `999` |
+| 1,000 이상 | K 단위 소수점 1자리 축약 | `1.2K`, `15K`, `999.9K` |
+| 1,000,000 이상 | M 단위 | `1.2M` |
+
+`TrackRow` · `TrackCard` · 곡 상세 헤더 · 창작자 채널 총 재생수에 동일하게 적용합니다.
+차트 테이블 `♥ 수` 컬럼 폭은 최대 `1.2K` 기준(약 5자)으로 산정합니다.
+구현 시 `src/lib/format.ts`의 `formatCount()` 함수로 통일합니다.
+
+---
 
 **재생** — HTML5 `<audio>` 네이티브 API + Zustand. 외부 라이브러리 없음. 페이지 이동 간 끊김 없는 재생을 위해 **단일 인스턴스**로 관리. 상세 설계는 `PLAN.md` §7.
 
@@ -330,6 +365,7 @@ code.js 구성 계층:
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.3 | 2026-09-14 | 설계 공백 확정 반영 — QueuePanel 추가, 차트 필터/⋯메뉴/other처리, 로그인 Google버튼, 보관함 플리생성흐름, 플리 인라인편집, 검색 프롬프트탭, 숫자표기 §5.1, EmptyState variant 3종, 토큰 변경 없음 명시 |
 | v1.2 | 2026-09-14 | 사이드바 로고를 투명 누끼본(`logo.png`)으로 고정 |
 | v1.1 | 2026-09-14 | 로고 에셋·`color/brand/logo` 반영. 사이드바 로고를 이미지로 고정 |
 | v1.0 | 2026-09-14 | 기준 문서로 재작성. 이전 판(v0.x) 전부 폐기. §3.1 프레임 목록 · §6 구현 주의사항 정리, 문서 내 이력 블록 제거 |
