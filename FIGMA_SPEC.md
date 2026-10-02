@@ -2,7 +2,7 @@
 
 AI 음악 스트리밍 웹 서비스 `Selnar`의 UI/UX를 Figma 플러그인 스크립트(`manifest.json` + `code.js`)로 자동 생성하기 위한 명세서입니다.
 
-- **문서 버전:** v1.4 · 2026-09-14
+- **문서 버전:** v1.5 · 2026-10-02
 - **저장소 위치:** `github.com/guswnstjr125/selnar` → `/figma-plugin/`
 
 **문서 관계**
@@ -63,7 +63,11 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 텍스트 `Selnar`로 로고를 대체하지 않는다. 흰 배경본(`logo-on-light.png`)은 다크 셸에 쓰지 않는다. 사용 규칙은 `PLAN.md` §12.1.
 
 **상단 헤더**
-검색창 (placeholder: `곡명, 창작자, 프롬프트 키워드 검색`) / 로그인 · 프로필 버튼
+검색창 (placeholder: `곡명, 창작자, 프롬프트 키워드 검색`) / 우측 계정 영역 2상태
+- 비로그인: [로그인] 버튼 (ghost)
+- 로그인: 프로필 버튼(아바타). 클릭 시 드롭다운 — `내 채널` · `로그아웃`
+- `Header` 컴포넌트의 Variant `signed-out` / `signed-in`. 별도 프레임은 만들지 않고 `PC/01-Home`은 `signed-in`, `PC/05-Auth-*`는 헤더 자체가 없음. 비로그인 헤더는 Foundation 컴포넌트 시트에서 확인
+- 사이드바 · 좋아요 하트 · [곡 업로드]는 로그인 여부와 무관하게 같은 모습 (`PLAN.md` §5.3)
 
 **하단 고정 플레이어 (H 80px / Mobile 64px)**
 
@@ -88,10 +92,12 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 
 ### 1) 홈 `/` — `buildHomePC`, `buildHomeMobile`
 
-- **히어로 배너** — 이주의 추천 AI 트랙 (대형 배경 커버, [즉시 재생], [프롬프트 보기])
-- **AI 툴별 인기 픽** — `Suno 핫트랙`, `Udio 핫트랙` 가로 스크롤 카드
+- **히어로 배너** — 이주의 추천 AI 트랙 (대형 배경 커버, [즉시 재생], [프롬프트 보기]). 선정 기준은 `PLAN.md` §5.4
+- **AI 툴별 인기 픽** — `Suno 핫트랙`, `Udio 핫트랙` 가로 스크롤 카드. 각 상위 10곡
 - **주간 TOP 5** — 컴팩트 랭킹 리스트 (순위 숫자 + 커버 + 제목 + 창작자)
 - **최신 업로드** — 그리드 카드. 7일 이내 곡에 `NEW` 뱃지
+- 모바일 차트 행의 `NEW` 뱃지는 제목 줄 오른쪽에 붙임
+- 데이터 로드 실패 시 해당 영역을 `EmptyState`(`default`) + [다시 시도]로 대체 (`PLAN.md` §5.4)
 
 ### 2) 차트 `/chart` — `buildChartPC`, `buildChartMobile`
 
@@ -219,6 +225,27 @@ Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · P
 4. Mobile 6장
 
 세로 치수는 AutoLayout hug가 결정하므로 명세에 적지 않습니다.
+
+### 3.2 컴포넌트 상태 Variant
+
+상태 정의는 `PLAN.md` §5.4가 정합니다. 각 Variant가 Storybook story 하나가 됩니다 (`PLAN.md` §6.3).
+
+| 컴포넌트 | Variant 축 | 값 |
+|---|---|---|
+| `Button` | `kind` × `state` | `primary` `ghost` `pill` × `default` `hover` `focus` `disabled` |
+| `Input` | `state` | `default` `hover` `focus` `disabled` `error` |
+| `Switch` | `value` × `state` | `on` `off` × `default` `focus` `disabled` |
+| `TrackRow` | `state` | `default` `hover` `playing`(재생 중 곡 하이라이트) `loading` |
+| `TrackCard` | `state` | `default` `hover` `loading` |
+| `Header` | `account` | `signed-out` `signed-in` |
+| `EmptyState` | `variant` | `default`(+ [다시 시도] 선택) `not-found` `removed` |
+| `Toast` | `variant` | `success` `error` |
+
+- `focus` = `color/brand/primary` 2px 링, 오프셋 2px. 새 토큰 없음
+- `disabled` = 텍스트 `text/disabled`, 배경 `bg/elevated`
+- `loading` = 막대 `bg/hover` 스켈레톤. 텍스트 · 커버 자리만 막대로 대체
+- `Input.error` = 에러 색 토큰이 없으므로 테두리는 그대로 두고 **하단 캡션(`text/caption`)** 으로만 표시. 에러 색 토큰은 만들지 않음
+- 상태 Variant는 Foundation 컴포넌트 시트에서만 그립니다. 화면 프레임(§3.1)은 `default`만 씁니다
 
 ---
 
@@ -367,6 +394,7 @@ code.js 구성 계층:
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.5 | 2026-10-02 | §3 헤더 2상태 · 홈 구성 기준 · 로딩/에러 참조 추가, §3.2 컴포넌트 상태 Variant 표 신규. 토큰 변경 없음 |
 | v1.4 | 2026-09-14 | §5 헤더 계층 정상화(5.1 숫자 표기, 5.2 오디오 사양), §3.1 컴포넌트·프레임 수치 일치(13종, PC 17장, 총 23장), §6 QueuePanel 추가 |
 | v1.3 | 2026-09-14 | 설계 공백 확정 반영 — QueuePanel 추가, 차트 필터/⋯메뉴/other처리, 로그인 Google버튼, 보관함 플리생성흐름, 플리 인라인편집, 검색 프롬프트탭, 숫자표기 §5.1, EmptyState variant 3종, 토큰 변경 없음 명시 |
 | v1.2 | 2026-09-14 | 사이드바 로고를 투명 누끼본(`logo.png`)으로 고정 |
