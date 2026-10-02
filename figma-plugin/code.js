@@ -216,6 +216,7 @@ async function buildTokens() {
   }
 
   const modeId = collection.modes[0].modeId;
+  collection.renameMode(modeId, 'Default');
   const existing = await figma.variables.getLocalVariablesAsync();
   const map = {};
 
@@ -229,12 +230,24 @@ async function buildTokens() {
     return v;
   }
 
+  // 기본값 ALL_SCOPES는 모든 속성 선택창에 변수가 뜨므로 용도별로 제한합니다
+  const colorScopes = (name) =>
+    name.startsWith('color/text/') ? ['TEXT_FILL'] :
+    name.startsWith('color/border/') ? ['STROKE_COLOR'] :
+    name === 'color/brand/primary' ? ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'] :
+    ['FRAME_FILL', 'SHAPE_FILL'];
+
   for (const [name, value] of Object.entries(COLORS)) {
-    ensure(name, 'COLOR', hex(value));
+    ensure(name, 'COLOR', hex(value)).scopes = colorScopes(name);
   }
-  for (const group of [RADII, SPACES, SIZES]) {
+  const floatScopes = [
+    [RADII, ['CORNER_RADIUS']],
+    [SPACES, ['GAP']],
+    [SIZES, ['WIDTH_HEIGHT']],
+  ];
+  for (const [group, scopes] of floatScopes) {
     for (const [name, value] of Object.entries(group)) {
-      ensure(name, 'FLOAT', value);
+      ensure(name, 'FLOAT', value).scopes = scopes;
     }
   }
 
@@ -406,15 +419,28 @@ async function buildSet(K, name, axes, make, width = SET_WIDTH) {
   }
   const set = figma.combineAsVariants(comps, figma.currentPage);
   set.name = name;
-  set.layoutMode = 'HORIZONTAL';
-  set.layoutWrap = 'WRAP';
-  set.primaryAxisSizingMode = 'FIXED';
-  set.counterAxisSizingMode = 'AUTO';
-  set.counterAxisAlignItems = 'MIN';
-  set.resize(width, set.height);
-  bindSpace(set, 'itemSpacing', 'space/md');
-  bindSpace(set, 'counterAxisSpacing', 'space/md');
-  for (const f of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) bindSpace(set, f, 'space/lg');
+
+  // combineAsVariants는 자동 배치를 하지 않아 모든 Variant가 (0,0)에 겹칩니다.
+  // 줄바꿈 흐름으로 직접 배치하고, Set 크기는 자식 경계에서 다시 계산합니다.
+  const gap = SPACES['space/md'];
+  const inset = SPACES['space/lg'];
+  let x = inset;
+  let y = inset;
+  let rowH = 0;
+  let maxX = 0;
+  for (const child of set.children) {
+    if (x > inset && x + child.width > width - inset) {
+      x = inset;
+      y += rowH + gap;
+      rowH = 0;
+    }
+    child.x = x;
+    child.y = y;
+    x += child.width + gap;
+    rowH = Math.max(rowH, child.height);
+    maxX = Math.max(maxX, child.x + child.width);
+  }
+  set.resizeWithoutConstraints(Math.max(width, maxX + inset), y + rowH + inset);
   set.fills = [K.C('color/bg/base')];
   bindRadius(set, K.R('radius/md'));
   return set;
@@ -479,6 +505,7 @@ async function buildInput(K, placeholder, width = 320, state = 'default') {
   }
 
   const t = await txt(K, placeholder, 'text/body', 'color/text/disabled');
+  t.textAutoResize = 'HEIGHT'; // 기본값(WIDTH_AND_HEIGHT)이면 layoutGrow가 무시됩니다
   f.appendChild(t);
   t.layoutGrow = 1;
 
@@ -755,6 +782,7 @@ async function buildMiniPlayer(K) {
   f.appendChild(cover);
 
   const t = await txt(K, '새벽 세 시의 네온', 'text/bodyB', 'color/text/main');
+  t.textAutoResize = 'HEIGHT';
   f.appendChild(t);
   t.layoutGrow = 1;
   f.appendChild(await glyph(K, '▶', 'color/text/main', 'text/h2'));

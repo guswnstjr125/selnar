@@ -101,6 +101,7 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 ## Foundation 구현 메모
 
+- Plugin API 사용법은 Figma MCP의 `figma-use` 레퍼런스(gotchas · component-patterns)와 대조해 맞췄습니다. Variant 배치는 `combineAsVariants` 뒤 직접 배치하고, `layoutGrow`는 `appendChild` 뒤에, 변수 scope는 용도별로 지정합니다.
 - 컴포넌트는 Component Set으로 만들어집니다(Variant 이름 `kind=primary, state=hover` 형식). 단일 컴포넌트는 Sidebar · BottomPlayer · MiniPlayer · QueuePanel입니다.
 - **로고는 자리표시입니다.** 플러그인은 네트워크가 없어 `public/brand/logo.png`를 불러오지 못합니다. Sidebar의 `logo (public/brand/logo.png 로 교체)` 프레임에 이미지를 수동으로 채우세요.
 - 아이콘(♥ ▶ ⏮ ⏭ ⟲ ⤮ ☰ ⋯)은 유니코드 글리프 자리표시입니다. 1단계 코드에서 아이콘 컴포넌트로 교체합니다.
