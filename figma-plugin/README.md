@@ -3,7 +3,7 @@
 D단계 산출물. `FIGMA_SPEC.md` §4 토큰과 §3 화면 명세를 Figma 캔버스에 자동 렌더링합니다. 기능 범위는 `PLAN.md`가 정합니다.
 
 - **기준 문서:** [`../FIGMA_SPEC.md`](../FIGMA_SPEC.md) v1.4
-- **현재 구현 범위:** Foundation (토큰 + 검증 게이트 + 컴포넌트 5종: Badge · Button · Input · TrackRow · TrackCard). 화면 빌더는 아직 없음
+- **현재 구현 범위:** Foundation 전체 — 토큰 + 검증 게이트 + 컴포넌트 13종(상태 Variant 포함). 화면 빌더는 아직 없음. **Figma에서 실행해 확인하기 전 상태입니다**
 
 ---
 
@@ -84,7 +84,7 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 | 순서 | 내용 | 상태 |
 |---|---|---|
-| 1 | Foundation — 토큰 + 컴포넌트 13종 + 상태 Variant | **진행 중** |
+| 1 | Foundation — 토큰 + 컴포넌트 13종 + 상태 Variant | **코드 작성됨 · Figma 실행 검증 필요** |
 | 2 | `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail`(+`-Locked`) — 치수 확정 지점 | |
 | 3 | 끝. 나머지 PC 13장과 Mobile 6장은 Figma로 그리지 않고 코드로 구현 (`PLAN.md` §9) | |
 
@@ -96,6 +96,17 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 - 간격은 `space/*` 변수에 바인딩됩니다(`AL()`의 `gap`·`pad`는 토큰 이름만 받고 0 외 숫자는 에러). 스케일(4·8·16·24·32·48)에 없던 값(2·3·6·10·12)은 가장 가까운 토큰으로 맞췄으므로 치수가 이전과 조금 다릅니다. 최종 치수는 `PC/01~03` 단계에서 확정합니다.
 - 로고 토큰 `color/brand/logo`(#C09B4A)는 정의돼 있고, 로고 이미지는 Sidebar 컴포넌트에서 `public/brand/logo.png`를 씁니다.
+
+---
+
+## Foundation 구현 메모
+
+- 컴포넌트는 Component Set으로 만들어집니다(Variant 이름 `kind=primary, state=hover` 형식). 단일 컴포넌트는 Sidebar · BottomPlayer · MiniPlayer · QueuePanel입니다.
+- **로고는 자리표시입니다.** 플러그인은 네트워크가 없어 `public/brand/logo.png`를 불러오지 못합니다. Sidebar의 `logo (public/brand/logo.png 로 교체)` 프레임에 이미지를 수동으로 채우세요.
+- 아이콘(♥ ▶ ⏮ ⏭ ⟲ ⤮ ☰ ⋯)은 유니코드 글리프 자리표시입니다. 1단계 코드에서 아이콘 컴포넌트로 교체합니다.
+- focus 링은 2px 외곽선(`OUTSIDE`)이고 2px 오프셋은 적용하지 않았습니다. 필요하면 Figma에서 손으로 조정합니다.
+- `Toast.error`는 에러 색 토큰이 없어 글리프(`!`)로만 구분합니다.
+- 크기 변수(`size/*`) 바인딩이 불가능한 필드면 콘솔에 경고를 남기고 현재 값을 유지합니다. 경고가 보이면 알려 주세요.
 
 ---
 
