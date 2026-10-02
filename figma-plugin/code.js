@@ -1,8 +1,7 @@
 // Selnar Design Renderer
-// 기준 문서: FIGMA_SPEC.md v1.5 §4(토큰) · §3.1(프레임) · §6(아키텍처)
+// 기준 문서: FIGMA_SPEC.md v1.6 §4(토큰) · §3.1(프레임) · §6(아키텍처)
 //
-// 이 파일은 Foundation 단계(토큰 + 컴포넌트 13종 + 상태 Variant)까지 구현합니다.
-// 화면 빌더(PC/01·02·03)는 §7-2 검증 게이트를 통과한 뒤 얹습니다.
+// Foundation(토큰 + 컴포넌트 13종)과 PC/01·02·03(+Locked) 화면을 구현합니다.
 // Figma로 그리는 화면은 PC 3화면(+TrackDetail-Locked)뿐입니다 (PLAN.md §9).
 
 // ─────────────────────────────────────────────────────────────
@@ -21,11 +20,19 @@ const CONFIG = {
   build: {
     verifyGate: true,   // §7-2 바인딩 검증 게이트
     components: true,   // Foundation 컴포넌트 13종 (FIGMA_SPEC §3.1)
+    homePC: false,      // PC/01-Home
+    chartPC: false,     // PC/02-Chart
+    trackDetailPC: false, // PC/03-TrackDetail
+    trackDetailLockedPC: false, // PC/03-TrackDetail-Locked
   },
 };
 
 const COLLECTION_NAME = 'Selnar Tokens';
 const PAGE_FOUNDATION = '00 · Foundation';
+const PAGE_PC = '01 · PC (1920)';
+const PC_WIDTH = 1920;
+const SIDEBAR_WIDTH = 240;
+const PAGE_CONTENT_WIDTH = PC_WIDTH - SIDEBAR_WIDTH;
 
 // ─────────────────────────────────────────────────────────────
 // 2. 토큰 정의 — FIGMA_SPEC.md §4 그대로
@@ -187,16 +194,9 @@ function pad(v) {
   return [0, 0, 0, 0];
 }
 
-/** 커버 자리표시용 채움 */
-function thumbFill(node, h) {
-  node.fills = [{
-    type: 'GRADIENT_LINEAR',
-    gradientTransform: [[1, 0, 0], [0, 1, 0]],
-    gradientStops: [
-      { position: 0, color: Object.assign({}, hex(h), { a: 1 }) },
-      { position: 1, color: Object.assign({}, hex('#0A0A0A'), { a: 1 }) },
-    ],
-  }];
+/** 커버 자리표시용 채움 — 실제 이미지를 넣기 전까지 색상 토큰에 바인딩 */
+function thumbFill(K, node, colorToken = 'color/bg/elevated') {
+  node.fills = [K.C(colorToken)];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -277,7 +277,7 @@ async function buildTokens() {
       const v = map[name];
       if (!v) throw new Error(`토큰 없음: ${name}`);
       return figma.variables.setBoundVariableForPaint(
-        solid('#000000'), 'color', v
+        solid(COLORS['color/bg/base']), 'color', v
       );
     },
     /** FLOAT 변수 객체 반환 → node.setBoundVariable('topLeftRadius', K.R('radius/md')) */
@@ -568,7 +568,7 @@ async function buildTrackRow(K, o = {}, state = 'default') {
   const cover = figma.createRectangle();
   cover.name = 'cover';
   cover.resize(40, 40);
-  thumbFill(cover, o.coverHex || '#10B981');
+  thumbFill(K, cover, o.coverToken || 'color/brand/primary');
   bindRadius(cover, K.R('radius/sm'));
   bindSize(K, cover, 'width', 'size/cover/row');
   bindSize(K, cover, 'height', 'size/cover/row');
@@ -613,7 +613,7 @@ async function buildTrackCard(K, o = {}, state = 'default') {
   const cover = figma.createRectangle();
   cover.name = 'cover';
   cover.resize(148, 148);
-  thumbFill(cover, o.coverHex || '#7C3AED');
+  thumbFill(K, cover, o.coverToken || 'color/brand/secondary');
   bindRadius(cover, K.R('radius/md'));
   card.appendChild(cover);
 
@@ -729,7 +729,7 @@ async function buildBottomPlayer(K) {
   const cover = figma.createRectangle();
   cover.name = 'cover';
   cover.resize(56, 56);
-  thumbFill(cover, '#10B981');
+  thumbFill(K, cover, 'color/brand/primary');
   bindRadius(cover, K.R('radius/sm'));
   bindSize(K, cover, 'width', 'size/cover/player');
   bindSize(K, cover, 'height', 'size/cover/player');
@@ -775,7 +775,7 @@ async function buildMiniPlayer(K) {
   const cover = figma.createRectangle();
   cover.name = 'cover';
   cover.resize(40, 40);
-  thumbFill(cover, '#10B981');
+  thumbFill(K, cover, 'color/brand/primary');
   bindRadius(cover, K.R('radius/sm'));
   bindSize(K, cover, 'width', 'size/cover/row');
   bindSize(K, cover, 'height', 'size/cover/row');
@@ -812,7 +812,7 @@ async function buildQueuePanel(K) {
     const cover = figma.createRectangle();
     cover.name = 'cover';
     cover.resize(40, 40);
-    thumbFill(cover, current ? '#10B981' : '#7C3AED');
+    thumbFill(K, cover, current ? 'color/brand/primary' : 'color/badge/udio');
     bindRadius(cover, K.R('radius/sm'));
     bindSize(K, cover, 'width', 'size/cover/row');
     bindSize(K, cover, 'height', 'size/cover/row');
@@ -829,7 +829,463 @@ async function buildQueuePanel(K) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 8. main()
+// 8. PC 화면 빌더 — Foundation 컴포넌트 인스턴스만 사용
+// ─────────────────────────────────────────────────────────────
+
+const SCREEN_TRACKS = [
+  { title: '새벽 세 시의 네온', artist: '김하늘', duration: '3:24' },
+  { title: '비 오는 날의 발라드', artist: '이준서', duration: '4:02' },
+  { title: '한강 야경', artist: '박서연', duration: '2:58' },
+];
+
+async function foundationSource(name, variants = {}) {
+  await figma.loadAllPagesAsync();
+  const page = figma.root.children.find((p) => p.name === PAGE_FOUNDATION);
+  if (!page) {
+    throw new Error('Foundation 페이지가 없습니다. 먼저 components 플래그를 켜서 렌더하세요.');
+  }
+
+  const source = page.findOne((node) =>
+    (node.type === 'COMPONENT_SET' || node.type === 'COMPONENT') &&
+    node.name === name
+  );
+  if (!source) {
+    throw new Error(`Foundation 컴포넌트가 없습니다: ${name}`);
+  }
+
+  if (source.type === 'COMPONENT') return source;
+  const component = source.children.find((child) => {
+    if (child.type !== 'COMPONENT') return false;
+    return Object.entries(variants).every(([key, value]) =>
+      child.variantProperties && child.variantProperties[key] === value
+    );
+  });
+  if (!component) {
+    throw new Error(`${name} Variant를 찾을 수 없습니다: ${JSON.stringify(variants)}`);
+  }
+  return component;
+}
+
+async function foundationInstance(name, variants = {}) {
+  const source = await foundationSource(name, variants);
+  const instance = source.createInstance();
+  instance.name = `${name} instance`;
+  return instance;
+}
+
+function instanceTexts(instance) {
+  return instance.findAll((node) => node.type === 'TEXT');
+}
+
+function replaceInstanceText(instance, replacements) {
+  for (const node of instanceTexts(instance)) {
+    if (Object.prototype.hasOwnProperty.call(replacements, node.characters)) {
+      node.characters = replacements[node.characters];
+    }
+  }
+}
+
+function hideInstanceLabel(instance, label) {
+  const textNode = instanceTexts(instance).find((node) => node.characters === label);
+  if (textNode && textNode.parent && textNode.parent !== instance) {
+    textNode.parent.visible = false;
+  }
+}
+
+async function buttonInstance(label, kind = 'primary') {
+  const instance = await foundationInstance('Button', { kind, state: 'default' });
+  const labelNode = instanceTexts(instance)[0];
+  if (labelNode) labelNode.characters = label;
+  return instance;
+}
+
+async function badgeInstance(kind, label) {
+  const instance = await foundationInstance('Badge', { kind });
+  const labelNode = instanceTexts(instance)[0];
+  if (labelNode && label) labelNode.characters = label;
+  return instance;
+}
+
+async function trackCardInstance(o = {}, state = 'default') {
+  const instance = await foundationInstance('TrackCard', { state });
+  if (state === 'loading') return instance;
+  replaceInstanceText(instance, {
+    '새벽 세 시의 네온': o.title || '새벽 세 시의 네온',
+    '김하늘': o.artist || '김하늘',
+  });
+  if (!o.isNew) hideInstanceLabel(instance, 'NEW');
+  return instance;
+}
+
+async function trackRowInstance(K, o = {}, state = 'default') {
+  const instance = await foundationInstance('TrackRow', { state });
+  if (state === 'loading') return instance;
+
+  replaceInstanceText(instance, {
+    '1': String(o.rank == null ? 1 : o.rank),
+    '새벽 세 시의 네온': o.title || '새벽 세 시의 네온',
+    '김하늘': o.artist || '김하늘',
+    'Suno': o.tool || 'Suno',
+    '일렉트로닉': o.genre || '일렉트로닉',
+    '3:24': o.duration || '3:24',
+    '♥ 1.2K': `♥ ${o.likes || '1.2K'}`,
+  });
+  if (!o.isNew) hideInstanceLabel(instance, 'NEW');
+
+  const toolNode = instanceTexts(instance).find((node) => node.characters === (o.tool || 'Suno'));
+  if (toolNode && toolNode.parent) {
+    const token = o.tool === 'Udio' ? 'color/badge/udio' : 'color/badge/suno';
+    toolNode.parent.fills = [K.C(token)];
+  }
+  if (o.compact) {
+    const hiddenLabels = [
+      o.genre || '일렉트로닉',
+      o.duration || '3:24',
+      `♥ ${o.likes || '1.2K'}`,
+      '⋯',
+    ];
+    for (const node of instanceTexts(instance)) {
+      if (hiddenLabels.includes(node.characters)) node.visible = false;
+    }
+    if (toolNode && toolNode.parent) toolNode.parent.visible = false;
+  }
+  return instance;
+}
+
+function appendStretch(parent, child) {
+  parent.appendChild(child);
+  child.layoutAlign = 'STRETCH';
+  return child;
+}
+
+function innerContentWidth() {
+  return PAGE_CONTENT_WIDTH - SPACES['space/lg'] * 2;
+}
+
+async function sectionHeading(K, title, caption) {
+  const row = AL({
+    name: `${title}/heading`, dir: 'H', gap: 'space/md',
+    w: innerContentWidth(), align: 'MAX',
+  });
+  row.appendChild(await txt(K, title, 'text/h2', 'color/text/main'));
+  if (caption) {
+    const spacer = figma.createFrame();
+    spacer.name = 'spacer';
+    spacer.resize(1, 1);
+    spacer.fills = [];
+    row.appendChild(spacer);
+    spacer.layoutGrow = 1;
+    row.appendChild(await txt(K, caption, 'text/caption', 'color/text/muted'));
+  }
+  return row;
+}
+
+async function buildCardStrip(K, name, count, tool, showNew = false) {
+  const viewport = AL({ name, dir: 'H', gap: 0, w: innerContentWidth(), align: 'MIN' });
+  viewport.clipsContent = true;
+
+  const strip = AL({ name: `${name}/scroll-content`, dir: 'H', gap: 'space/md', align: 'MIN' });
+  for (let i = 0; i < count; i += 1) {
+    const sample = SCREEN_TRACKS[i % SCREEN_TRACKS.length];
+    strip.appendChild(await trackCardInstance({
+      title: sample.title,
+      artist: sample.artist,
+      isNew: showNew && i < SCREEN_TRACKS.length,
+      tool,
+    }));
+  }
+  viewport.appendChild(strip);
+  return viewport;
+}
+
+async function buildPCShell(K, frameName, content) {
+  const screen = AL({ name: frameName, dir: 'V', gap: 0, w: PC_WIDTH, align: 'MIN' });
+  screen.fills = [K.C('color/bg/base')];
+
+  const body = AL({ name: 'AppShell/body', dir: 'H', gap: 0, w: PC_WIDTH, align: 'MIN' });
+  const sidebar = await foundationInstance('Sidebar');
+  body.appendChild(sidebar);
+
+  const main = AL({ name: 'AppShell/main', dir: 'V', gap: 0, w: PAGE_CONTENT_WIDTH, align: 'MIN' });
+  const header = await foundationInstance('Header', { account: 'signed-in' });
+  main.appendChild(header);
+  appendStretch(main, content);
+  body.appendChild(main);
+
+  screen.appendChild(body);
+  const player = await foundationInstance('BottomPlayer');
+  screen.appendChild(player);
+  return screen;
+}
+
+/** PC/01-Home — PLAN.md §5.4 선정 기준과 FIGMA_SPEC.md §3-1 구성 */
+async function buildHomePC(K) {
+  const content = AL({
+    name: 'Home/content', dir: 'V', gap: 'space/2xl', pad: 'space/lg',
+    w: PAGE_CONTENT_WIDTH, align: 'MIN',
+  });
+
+  const hero = AL({
+    name: 'Hero/이주의 추천', dir: 'H', gap: 'space/2xl', pad: 'space/xl',
+    w: innerContentWidth(), align: 'CENTER',
+  });
+  hero.fills = [K.C('color/bg/surface')];
+  bindRadius(hero, K.R('radius/lg'));
+  const art = box(K, 'cover', 300, 300, 'color/bg/elevated', 'radius/md');
+  bindSize(K, art, 'width', 'size/cover/hero');
+  bindSize(K, art, 'height', 'size/cover/hero');
+  hero.appendChild(art);
+
+  const heroCopy = AL({ name: 'Hero/copy', dir: 'V', gap: 'space/md', align: 'MIN' });
+  heroCopy.appendChild(await txt(K, '이주의 추천 AI 트랙', 'text/bodyB', 'color/brand/primary'));
+  heroCopy.appendChild(await txt(K, '새벽 세 시의 네온', 'text/display', 'color/text/main'));
+  heroCopy.appendChild(await txt(K, '최근 7일 종합 차트 1위', 'text/body', 'color/text/muted'));
+  const heroActions = AL({ name: 'Hero/actions', dir: 'H', gap: 'space/sm' });
+  heroActions.appendChild(await buttonInstance('즉시 재생', 'primary'));
+  heroActions.appendChild(await buttonInstance('프롬프트 보기', 'ghost'));
+  heroCopy.appendChild(heroActions);
+  hero.appendChild(heroCopy);
+  heroCopy.layoutGrow = 1;
+  content.appendChild(hero);
+
+  for (const [title, tool] of [['Suno 핫트랙', 'Suno'], ['Udio 핫트랙', 'Udio']]) {
+    const section = AL({
+      name: title, dir: 'V', gap: 'space/md', w: innerContentWidth(), align: 'MIN',
+    });
+    appendStretch(section, await sectionHeading(K, title, '상위 10곡'));
+    appendStretch(section, await buildCardStrip(K, `${tool}/cards`, 10, tool));
+    content.appendChild(section);
+  }
+
+  const weekly = AL({
+    name: '주간 TOP 5', dir: 'V', gap: 'space/md', w: innerContentWidth(), align: 'MIN',
+  });
+  appendStretch(weekly, await sectionHeading(K, '주간 TOP 5'));
+  for (let i = 0; i < 5; i += 1) {
+    const sample = SCREEN_TRACKS[i % SCREEN_TRACKS.length];
+    const row = await trackRowInstance(K, {
+      rank: i + 1,
+      title: sample.title,
+      artist: sample.artist,
+      duration: sample.duration,
+      tool: i % 2 === 0 ? 'Suno' : 'Udio',
+      isNew: i < SCREEN_TRACKS.length,
+      compact: true,
+    });
+    appendStretch(weekly, row);
+  }
+  content.appendChild(weekly);
+
+  const latest = AL({
+    name: '최신 업로드', dir: 'V', gap: 'space/md', w: innerContentWidth(), align: 'MIN',
+  });
+  appendStretch(latest, await sectionHeading(K, '최신 업로드', 'created_at 내림차순 · 7일 이내 NEW'));
+  appendStretch(latest, await buildCardStrip(K, 'Latest/cards', 10, null, true));
+  content.appendChild(latest);
+
+  return buildPCShell(K, 'PC/01-Home', content);
+}
+
+/** PC/02-Chart — 상위 12행과 말줄임만 렌더 */
+async function buildChartPC(K) {
+  const content = AL({
+    name: 'Chart/content', dir: 'V', gap: 'space/lg', pad: 'space/lg',
+    w: PAGE_CONTENT_WIDTH, align: 'MIN',
+  });
+
+  const titleRow = AL({
+    name: 'Chart/title', dir: 'H', gap: 'space/md', w: innerContentWidth(),
+  });
+  titleRow.appendChild(await txt(K, '차트', 'text/h1', 'color/text/main'));
+  const spacer = figma.createFrame();
+  spacer.name = 'spacer';
+  spacer.resize(1, 1);
+  spacer.fills = [];
+  titleRow.appendChild(spacer);
+  spacer.layoutGrow = 1;
+  titleRow.appendChild(await txt(K, '매일 00:00 갱신 · 기준 YYYY-MM-DD', 'text/caption', 'color/text/muted'));
+  titleRow.appendChild(await buttonInstance('전체 재생', 'primary'));
+  appendStretch(content, titleRow);
+
+  const tabs = AL({ name: 'Chart/filters', dir: 'H', gap: 'space/sm', align: 'MIN' });
+  for (const [label, kind] of [
+    ['종합 TOP 100', 'primary'],
+    ['Suno TOP 50', 'pill'],
+    ['Udio TOP 50', 'pill'],
+    ['장르별', 'pill'],
+  ]) {
+    tabs.appendChild(await buttonInstance(label, kind));
+  }
+  content.appendChild(tabs);
+
+  const genres = AL({ name: 'Chart/genre-filters', dir: 'H', gap: 'space/sm', align: 'MIN' });
+  for (const genre of ['케이팝', '발라드', '힙합', 'R&B', '팝(POP)', 'J-POP', '인디', '일렉트로닉', '기타']) {
+    genres.appendChild(await buttonInstance(genre, 'pill'));
+  }
+  content.appendChild(genres);
+
+  const columns = AL({
+    name: 'Chart/columns', dir: 'H', gap: 'space/md', pad: ['space/sm', 'space/md'],
+  });
+  columns.appendChild(await txt(
+    K,
+    '순위    커버    제목 / 창작자                                      AI 툴    장르    재생시간    ♥ 수    더보기',
+    'text/caption',
+    'color/text/muted'
+  ));
+  appendStretch(content, columns);
+
+  const rows = AL({
+    name: 'Chart/top-12', dir: 'V', gap: 'space/xs', w: innerContentWidth(), align: 'MIN',
+  });
+  for (let i = 0; i < 12; i += 1) {
+    const sample = SCREEN_TRACKS[i % SCREEN_TRACKS.length];
+    const row = await trackRowInstance(K, {
+      rank: i + 1,
+      title: sample.title,
+      artist: sample.artist,
+      duration: sample.duration,
+      tool: i % 2 === 0 ? 'Suno' : 'Udio',
+      genre: i % 2 === 0 ? '일렉트로닉' : '발라드',
+      likes: i < 3 ? '1.2K' : '999',
+      isNew: i < SCREEN_TRACKS.length,
+    });
+    appendStretch(rows, row);
+  }
+  const more = await txt(K, '…', 'text/h2', 'color/text/muted');
+  more.textAlignHorizontal = 'CENTER';
+  more.resize(innerContentWidth(), more.height);
+  rows.appendChild(more);
+  appendStretch(content, rows);
+
+  return buildPCShell(K, 'PC/02-Chart', content);
+}
+
+async function promptField(K, label, value) {
+  const field = AL({ name: label, dir: 'V', gap: 'space/sm', pad: 'space/md', align: 'MIN' });
+  field.fills = [K.C('color/bg/elevated')];
+  bindRadius(field, K.R('radius/md'));
+  field.appendChild(await txt(K, label, 'text/bodyB', 'color/text/main'));
+  field.appendChild(await txt(K, value, 'text/body', 'color/text/muted'));
+  return field;
+}
+
+/** PC/03-TrackDetail — locked=true일 때 비공개 프롬프트 변형 */
+async function buildTrackDetailPC(K, locked = false) {
+  const content = AL({
+    name: 'TrackDetail/content', dir: 'V', gap: 'space/2xl', pad: 'space/lg',
+    w: PAGE_CONTENT_WIDTH, align: 'MIN',
+  });
+
+  const visual = AL({
+    name: 'TrackDetail/visual-header', dir: 'H', gap: 'space/2xl',
+    pad: 'space/xl', w: innerContentWidth(), align: 'CENTER',
+  });
+  visual.fills = [K.C('color/bg/surface')];
+  bindRadius(visual, K.R('radius/lg'));
+  const art = box(K, 'cover', 300, 300, 'color/bg/elevated', 'radius/md');
+  bindSize(K, art, 'width', 'size/cover/hero');
+  bindSize(K, art, 'height', 'size/cover/hero');
+  visual.appendChild(art);
+
+  const meta = AL({ name: 'TrackDetail/meta', dir: 'V', gap: 'space/md', align: 'MIN' });
+  meta.appendChild(await txt(K, '곡', 'text/caption', 'color/text/muted'));
+  meta.appendChild(await txt(K, '새벽 세 시의 네온', 'text/display', 'color/text/main'));
+  meta.appendChild(await txt(K, '김하늘 · 업로드일 YYYY-MM-DD', 'text/body', 'color/text/muted'));
+  const badges = AL({ name: 'TrackDetail/badges', dir: 'H', gap: 'space/sm' });
+  badges.appendChild(await badgeInstance('suno', 'Suno'));
+  badges.appendChild(await badgeInstance('model', 'v4.5'));
+  meta.appendChild(badges);
+  const actions = AL({ name: 'TrackDetail/actions', dir: 'H', gap: 'space/sm' });
+  actions.appendChild(await buttonInstance('재생', 'primary'));
+  actions.appendChild(await buttonInstance('좋아요', 'ghost'));
+  meta.appendChild(actions);
+  visual.appendChild(meta);
+  meta.layoutGrow = 1;
+  appendStretch(content, visual);
+
+  const inspector = AL({
+    name: locked ? 'PromptInspector/locked' : 'PromptInspector/public',
+    dir: 'V', gap: 'space/md', pad: 'space/lg',
+    w: innerContentWidth(), align: 'MIN',
+  });
+  inspector.fills = [K.C('color/bg/surface')];
+  bindRadius(inspector, K.R('radius/lg'));
+  inspector.appendChild(await txt(K, '이 곡은 이렇게 만들었어요', 'text/h2', 'color/text/main'));
+  if (locked) {
+    const lockedBox = AL({
+      name: 'PromptInspector/message', dir: 'V', gap: 'space/sm',
+      pad: 'space/2xl', align: 'CENTER',
+    });
+    lockedBox.fills = [K.C('color/bg/elevated')];
+    bindRadius(lockedBox, K.R('radius/md'));
+    lockedBox.appendChild(await txt(K, '🔒', 'text/h1', 'color/text/muted'));
+    lockedBox.appendChild(await txt(
+      K,
+      '창작자가 프롬프트를 비공개했습니다',
+      'text/bodyB',
+      'color/text/main'
+    ));
+    appendStretch(inspector, lockedBox);
+  } else {
+    appendStretch(inspector, await promptField(
+      K,
+      '스타일 프롬프트',
+      '80s synthpop, nostalgic, emotional female vocal, 120bpm'
+    ));
+    appendStretch(inspector, await promptField(K, '네거티브 프롬프트', '없음'));
+    const copyFeedback = AL({
+      name: 'PromptInspector/copy-feedback', dir: 'H', gap: 'space/md', align: 'CENTER',
+    });
+    copyFeedback.appendChild(await buttonInstance('프롬프트 복사', 'ghost'));
+    copyFeedback.appendChild(await foundationInstance('Toast', { variant: 'success' }));
+    inspector.appendChild(copyFeedback);
+  }
+  appendStretch(content, inspector);
+
+  const lyrics = AL({
+    name: '가사', dir: 'V', gap: 'space/md', pad: 'space/lg',
+    w: innerContentWidth(), align: 'MIN',
+  });
+  lyrics.fills = [K.C('color/bg/surface')];
+  bindRadius(lyrics, K.R('radius/lg'));
+  lyrics.appendChild(await txt(K, '가사', 'text/h2', 'color/text/main'));
+  lyrics.appendChild(await txt(K, '한글 가사 본문', 'text/body', 'color/text/muted'));
+  lyrics.appendChild(await buttonInstance('가사 펼치기', 'ghost'));
+  appendStretch(content, lyrics);
+
+  const artist = AL({
+    name: '창작자 카드', dir: 'H', gap: 'space/md', pad: 'space/lg',
+    w: innerContentWidth(), align: 'CENTER',
+  });
+  artist.fills = [K.C('color/bg/surface')];
+  bindRadius(artist, K.R('radius/lg'));
+  const avatar = AL({ name: 'avatar', dir: 'H', gap: 0, pad: 'space/md' });
+  avatar.fills = [K.C('color/bg/elevated')];
+  bindRadius(avatar, K.R('radius/full'));
+  avatar.appendChild(await txt(K, '김', 'text/bodyB', 'color/text/main'));
+  artist.appendChild(avatar);
+  const artistMeta = AL({ name: 'artist/meta', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  artistMeta.appendChild(await txt(K, '김하늘', 'text/bodyB', 'color/text/main'));
+  artistMeta.appendChild(await txt(K, '곡 수', 'text/caption', 'color/text/muted'));
+  artist.appendChild(artistMeta);
+  artistMeta.layoutGrow = 1;
+  artist.appendChild(await buttonInstance('채널 가기', 'ghost'));
+  appendStretch(content, artist);
+
+  return buildPCShell(
+    K,
+    locked ? 'PC/03-TrackDetail-Locked' : 'PC/03-TrackDetail',
+    content
+  );
+}
+
+async function buildTrackDetailLockedPC(K) {
+  return buildTrackDetailPC(K, true);
+}
+
+// ─────────────────────────────────────────────────────────────
+// 9. main()
 // ─────────────────────────────────────────────────────────────
 
 async function ensurePage(name) {
@@ -858,26 +1314,34 @@ const SAMPLE_ROW = {
   rank: 1, title: '새벽 세 시의 네온', artist: '김하늘',
   tool: 'Suno', genre: '일렉트로닉', duration: '3:24', likes: '1.2K', isNew: true,
 };
-const SAMPLE_CARD = { title: '새벽 세 시의 네온', artist: '김하늘', isNew: true, coverHex: '#10B981' };
+const SAMPLE_CARD = {
+  title: '새벽 세 시의 네온',
+  artist: '김하늘',
+  isNew: true,
+  coverToken: 'color/brand/primary',
+};
 
 async function main() {
   await resolveFont();
   const K = await buildTokens();
   TOKENS = K;
 
-  const page = await ensurePage(PAGE_FOUNDATION);
-  await figma.setCurrentPageAsync(page);
+  const foundationPage = await ensurePage(PAGE_FOUNDATION);
+  await figma.setCurrentPageAsync(foundationPage);
 
   if (CONFIG.rebuild) {
-    clearByName(page, [GATE_NAME, ...COMPONENT_NAMES]);
+    const names = [];
+    if (CONFIG.build.verifyGate) names.push(GATE_NAME);
+    if (CONFIG.build.components) names.push(...COMPONENT_NAMES);
+    clearByName(foundationPage, names);
   }
 
   let cursorY = 0;
   const place = (node) => {
     node.x = 0;
     node.y = cursorY;
-    page.appendChild(node);
-    cursorY += node.height + 80;
+    foundationPage.appendChild(node);
+    cursorY += node.height + SPACES['space/2xl'];
   };
 
   if (CONFIG.build.verifyGate) place(await buildVerifyGate(K));
@@ -920,7 +1384,41 @@ async function main() {
     place(asComponent(await buildQueuePanel(K), 'QueuePanel'));
   }
 
-  figma.viewport.scrollAndZoomIntoView(page.children);
+  const screenPlan = [
+    ['PC/01-Home', CONFIG.build.homePC, buildHomePC],
+    ['PC/02-Chart', CONFIG.build.chartPC, buildChartPC],
+    ['PC/03-TrackDetail', CONFIG.build.trackDetailPC, buildTrackDetailPC],
+    ['PC/03-TrackDetail-Locked', CONFIG.build.trackDetailLockedPC, buildTrackDetailLockedPC],
+  ];
+  const hasScreens = screenPlan.some(([, enabled]) => enabled);
+
+  if (hasScreens) {
+    const pcPage = await ensurePage(PAGE_PC);
+    await figma.setCurrentPageAsync(pcPage);
+    if (CONFIG.rebuild) {
+      clearByName(
+        pcPage,
+        screenPlan.filter(([, enabled]) => enabled).map(([name]) => name)
+      );
+    }
+
+    const rendered = [];
+    let cursorX = 0;
+    for (const [, enabled, builder] of screenPlan) {
+      if (!enabled) continue;
+      const screen = await builder(K);
+      screen.x = cursorX;
+      screen.y = 0;
+      pcPage.appendChild(screen);
+      cursorX += screen.width + SPACES['space/2xl'];
+      rendered.push(screen);
+    }
+    figma.viewport.scrollAndZoomIntoView(rendered);
+    figma.closePlugin(`${rendered.length}개 PC 프레임 렌더 완료`);
+    return;
+  }
+
+  figma.viewport.scrollAndZoomIntoView(foundationPage.children);
   figma.closePlugin('Foundation 렌더 완료 — VERIFY 사각형으로 바인딩을 확인하세요.');
 }
 

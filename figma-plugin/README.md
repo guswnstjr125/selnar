@@ -2,8 +2,8 @@
 
 D단계 산출물. `FIGMA_SPEC.md` §4 토큰과 §3 화면 명세를 Figma 캔버스에 자동 렌더링합니다. 기능 범위는 `PLAN.md`가 정합니다.
 
-- **기준 문서:** [`../FIGMA_SPEC.md`](../FIGMA_SPEC.md) v1.4
-- **현재 구현 범위:** Foundation 전체 — 토큰 + 검증 게이트 + 컴포넌트 13종(상태 Variant 포함). 화면 빌더는 아직 없음. **Figma에서 실행해 확인하기 전 상태입니다**
+- **기준 문서:** [`../FIGMA_SPEC.md`](../FIGMA_SPEC.md) v1.6
+- **현재 구현 범위:** Foundation 전체 + `PC/01-Home` · `PC/02-Chart` · `PC/03-TrackDetail` · `PC/03-TrackDetail-Locked`. **코드만 작성됐고 Figma에서 실행해 확인하기 전 상태입니다**
 
 ---
 
@@ -46,11 +46,17 @@ const CONFIG = {
   build: {
     verifyGate: true,
     components: true,
+    homePC: false,
+    chartPC: false,
+    trackDetailPC: false,
+    trackDetailLockedPC: false,
   },
 };
 ```
 
 **토큰을 Figma에서 직접 손봤다면 `rebuildTokens: false`로 두세요.** true면 컬렉션을 지우고 새로 만들어서 조정한 값이 날아갑니다.
+
+Foundation 검증 뒤 화면을 그릴 때는 `verifyGate` · `components`를 `false`, `rebuildTokens`를 `false`로 바꾸고 화면 플래그를 **한 번에 하나씩** 켭니다. `rebuild: true`면 `01 · PC (1920)` 페이지에서 같은 이름의 기존 프레임만 지우고 다시 그립니다.
 
 ---
 
@@ -78,17 +84,21 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 ---
 
-## 다음에 붙일 것
+## 진행 상태
 
 `FIGMA_SPEC.md` §3.1 렌더 순서를 따릅니다.
 
 | 순서 | 내용 | 상태 |
 |---|---|---|
 | 1 | Foundation — 토큰 + 컴포넌트 13종 + 상태 Variant | **코드 작성됨 · Figma 실행 검증 필요** |
-| 2 | `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail`(+`-Locked`) — 치수 확정 지점 | |
-| 3 | 끝. 나머지 PC 13장과 Mobile 6장은 Figma로 그리지 않고 코드로 구현 (`PLAN.md` §9) | |
+| 2 | `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail`(+`-Locked`) — 치수 확정 지점 | **코드 작성됨 · Figma 실행 검증 필요** |
+| 3 | 끝. 나머지 PC 13장과 Mobile 6장은 Figma로 그리지 않고 코드로 구현 (`PLAN.md` §9) | **범위 확정** |
 
 **2번에서 치수를 전부 끝내세요.** 4장을 그린 뒤에 `TrackRow` 높이를 바꾸면 화면을 다시 그려야 합니다.
+
+- 네 화면은 Foundation의 `Sidebar` · `Header(signed-in)` · `BottomPlayer` · `TrackRow` · `TrackCard` · `Badge` · `Button` · `Toast` 인스턴스로 조립합니다. 새 컴포넌트는 만들지 않습니다.
+- 차트는 상위 12행과 말줄임만 렌더합니다.
+- 곡 상세 공개 화면의 [프롬프트 복사]는 `Button(kind=ghost, state=default)`이며 복사 성공 피드백은 `Toast(variant=success)` 인스턴스로 함께 표시합니다. 잠금 화면에는 복사 버튼을 표시하지 않습니다.
 
 ---
 
