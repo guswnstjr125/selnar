@@ -1,5 +1,5 @@
 // Selnar Design Renderer
-// 기준 문서: FIGMA_SPEC.md v1.4 §4(토큰) · §3.1(프레임) · §6(아키텍처)
+// 기준 문서: FIGMA_SPEC.md v1.5 §4(토큰) · §3.1(프레임) · §6(아키텍처)
 //
 // 이 파일은 Foundation 단계까지만 구현합니다.
 // 화면 빌더(buildHome 등)는 §7-2 검증 게이트를 통과한 뒤 얹습니다.
@@ -137,6 +137,7 @@ function solid(h) {
 /**
  * AutoLayout 프레임 생성
  * @param {object} o - name, dir('H'|'V'), gap, pad, w, h, fill, radius, align
+ * gap / pad는 토큰 이름('space/md')만 받습니다. 0은 허용, 그 외 숫자는 에러.
  */
 function AL(o = {}) {
   const f = figma.createFrame();
@@ -144,15 +145,15 @@ function AL(o = {}) {
   f.layoutMode = o.dir === 'V' ? 'VERTICAL' : 'HORIZONTAL';
   f.primaryAxisSizingMode = o.primary || 'AUTO';
   f.counterAxisSizingMode = o.counter || 'AUTO';
-  f.itemSpacing = o.gap != null ? o.gap : 0;
+  bindSpace(f, 'itemSpacing', o.gap);
   f.counterAxisAlignItems = o.align || 'CENTER';
   f.clipsContent = false;
 
   const p = pad(o.pad);
-  f.paddingTop = p[0];
-  f.paddingRight = p[1];
-  f.paddingBottom = p[2];
-  f.paddingLeft = p[3];
+  bindSpace(f, 'paddingTop', p[0]);
+  bindSpace(f, 'paddingRight', p[1]);
+  bindSpace(f, 'paddingBottom', p[2]);
+  bindSpace(f, 'paddingLeft', p[3]);
 
   if (o.w) { f.resize(o.w, f.height); f.counterAxisSizingMode = 'FIXED'; }
   if (o.fill) f.fills = [solid(o.fill)];
@@ -162,10 +163,25 @@ function AL(o = {}) {
   return f;
 }
 
-/** pad(8) / pad([8,16]) / pad([8,16,8,16]) → [T,R,B,L] */
+/** 간격 토큰 컨텍스트 — main()에서 buildTokens() 직후 주입 */
+let TOKENS = null;
+
+/** 간격 값을 변수에 바인딩합니다. 하드코딩 금지(AGENTS.md) — 숫자는 0만 허용 */
+function bindSpace(node, field, v) {
+  if (v == null || v === 0) {
+    node[field] = 0;
+    return;
+  }
+  if (typeof v !== 'string') {
+    throw new Error(`간격은 space/* 토큰 이름으로 지정하세요: ${field}=${v}`);
+  }
+  node.setBoundVariable(field, TOKENS.S(v));
+}
+
+/** pad('space/md') / pad(['space/sm','space/md']) / pad([T,R,B,L]) → [T,R,B,L] */
 function pad(v) {
   if (v == null) return [0, 0, 0, 0];
-  if (typeof v === 'number') return [v, v, v, v];
+  if (typeof v === 'string') return [v, v, v, v];
   if (v.length === 2) return [v[0], v[1], v[0], v[1]];
   if (v.length === 4) return v;
   return [0, 0, 0, 0];
@@ -298,7 +314,7 @@ async function txt(K, content, styleName, colorName) {
 async function buildVerifyGate(K) {
   const wrap = AL({
     name: 'VERIFY — 변수 값을 바꿔 따라오는지 확인',
-    dir: 'V', gap: 16, pad: 24, align: 'MIN',
+    dir: 'V', gap: 'space/md', pad: 'space/lg', align: 'MIN',
   });
   wrap.fills = [K.C('color/bg/surface')];
   bindRadius(wrap, K.R('radius/md'));
@@ -330,7 +346,7 @@ async function buildVerifyGate(K) {
 
 /** Badge — suno / udio / other / new / 모델 버전 */
 async function buildBadge(K, label, colorToken) {
-  const f = AL({ name: `Badge/${label}`, dir: 'H', gap: 0, pad: [3, 8] });
+  const f = AL({ name: `Badge/${label}`, dir: 'H', gap: 0, pad: ['space/xs', 'space/sm'] });
   f.fills = [K.C(colorToken)];
   bindRadius(f, K.R('radius/sm'));
 
@@ -343,7 +359,7 @@ async function buildBadge(K, label, colorToken) {
 
 /** Button — primary / ghost / pill */
 async function buildButton(K, label, variant = 'primary') {
-  const f = AL({ name: `Button/${variant}`, dir: 'H', gap: 8, pad: [10, 16] });
+  const f = AL({ name: `Button/${variant}`, dir: 'H', gap: 'space/sm', pad: ['space/sm', 'space/md'] });
 
   if (variant === 'primary') {
     f.fills = [K.C('color/brand/primary')];
@@ -365,7 +381,7 @@ async function buildButton(K, label, variant = 'primary') {
 
 /** Input */
 async function buildInput(K, placeholder, width = 320) {
-  const f = AL({ name: 'Input', dir: 'H', gap: 8, pad: [10, 12], w: width });
+  const f = AL({ name: 'Input', dir: 'H', gap: 'space/sm', pad: ['space/sm', 'space/md'], w: width });
   f.fills = [K.C('color/bg/elevated')];
   f.strokes = [K.C('color/border/subtle')];
   f.strokeWeight = 1;
@@ -381,7 +397,7 @@ async function buildInput(K, placeholder, width = 320) {
 async function buildTrackRow(K, o = {}) {
   const row = AL({
     name: 'TrackRow',
-    dir: 'H', gap: 16, pad: [8, 12], w: o.width || 880,
+    dir: 'H', gap: 'space/md', pad: ['space/sm', 'space/md'], w: o.width || 880,
     primary: 'FIXED',
   });
   row.fills = [];
@@ -401,10 +417,10 @@ async function buildTrackRow(K, o = {}) {
   bindRadius(cover, K.R('radius/sm'));
   row.appendChild(cover);
 
-  const meta = AL({ name: 'meta', dir: 'V', gap: 2, align: 'MIN' });
+  const meta = AL({ name: 'meta', dir: 'V', gap: 'space/xs', align: 'MIN' });
   meta.layoutGrow = 1;
 
-  const titleLine = AL({ name: 'titleLine', dir: 'H', gap: 6 });
+  const titleLine = AL({ name: 'titleLine', dir: 'H', gap: 'space/sm' });
   titleLine.appendChild(await txt(K, o.title || '무제', 'text/bodyB', 'color/text/main'));
   if (o.isNew) titleLine.appendChild(await buildBadge(K, 'NEW', 'color/badge/new'));
   meta.appendChild(titleLine);
@@ -428,7 +444,7 @@ async function buildTrackRow(K, o = {}) {
 
 /** TrackCard — 홈 가로 스크롤 / 그리드 / 창작자 대표곡 */
 async function buildTrackCard(K, o = {}) {
-  const card = AL({ name: 'TrackCard', dir: 'V', gap: 8, pad: 12, w: 180, align: 'MIN' });
+  const card = AL({ name: 'TrackCard', dir: 'V', gap: 'space/sm', pad: 'space/md', w: 180, align: 'MIN' });
   card.fills = [K.C('color/bg/surface')];
   bindRadius(card, K.R('radius/md'));
 
@@ -439,7 +455,7 @@ async function buildTrackCard(K, o = {}) {
   bindRadius(cover, K.R('radius/md'));
   card.appendChild(cover);
 
-  const titleLine = AL({ name: 'titleLine', dir: 'H', gap: 6 });
+  const titleLine = AL({ name: 'titleLine', dir: 'H', gap: 'space/sm' });
   titleLine.appendChild(await txt(K, o.title || '무제', 'text/bodyB', 'color/text/main'));
   if (o.isNew) titleLine.appendChild(await buildBadge(K, 'NEW', 'color/badge/new'));
   card.appendChild(titleLine);
@@ -471,6 +487,7 @@ function clearByName(page, names) {
 async function main() {
   await resolveFont();
   const K = await buildTokens();
+  TOKENS = K;
 
   const page = await ensurePage(PAGE_FOUNDATION);
   await figma.setCurrentPageAsync(page);
@@ -490,12 +507,12 @@ async function main() {
   }
 
   if (CONFIG.build.components) {
-    const shelf = AL({ name: 'Components', dir: 'V', gap: 32, pad: 32, align: 'MIN' });
+    const shelf = AL({ name: 'Components', dir: 'V', gap: 'space/xl', pad: 'space/xl', align: 'MIN' });
     shelf.fills = [K.C('color/bg/base')];
     bindRadius(shelf, K.R('radius/lg'));
 
     // Badge 5종
-    const badges = AL({ name: 'Badges', dir: 'H', gap: 8 });
+    const badges = AL({ name: 'Badges', dir: 'H', gap: 'space/sm' });
     badges.appendChild(await buildBadge(K, 'Suno', 'color/badge/suno'));
     badges.appendChild(await buildBadge(K, 'Udio', 'color/badge/udio'));
     badges.appendChild(await buildBadge(K, '기타', 'color/badge/other'));
@@ -504,7 +521,7 @@ async function main() {
     shelf.appendChild(badges);
 
     // Button 3종
-    const buttons = AL({ name: 'Buttons', dir: 'H', gap: 12 });
+    const buttons = AL({ name: 'Buttons', dir: 'H', gap: 'space/md' });
     buttons.appendChild(await buildButton(K, '곡 업로드', 'primary'));
     buttons.appendChild(await buildButton(K, '프롬프트 복사', 'ghost'));
     buttons.appendChild(await buildButton(K, '종합 TOP 100', 'pill'));
@@ -514,7 +531,7 @@ async function main() {
     shelf.appendChild(await buildInput(K, '곡명, 창작자, 프롬프트 키워드 검색', 420));
 
     // TrackRow 2종
-    const rows = AL({ name: 'TrackRows', dir: 'V', gap: 4, align: 'MIN' });
+    const rows = AL({ name: 'TrackRows', dir: 'V', gap: 'space/xs', align: 'MIN' });
     rows.appendChild(await buildTrackRow(K, {
       rank: 1, title: '새벽 세 시의 네온', artist: '김하늘',
       tool: 'Suno', genre: '일렉트로닉', duration: '3:24', likes: 182, isNew: true,
@@ -526,7 +543,7 @@ async function main() {
     shelf.appendChild(rows);
 
     // TrackCard 2종
-    const cards = AL({ name: 'TrackCards', dir: 'H', gap: 16 });
+    const cards = AL({ name: 'TrackCards', dir: 'H', gap: 'space/md' });
     cards.appendChild(await buildTrackCard(K, {
       title: '새벽 세 시의 네온', artist: '김하늘', isNew: true, coverHex: '#10B981',
     }));

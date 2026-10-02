@@ -84,7 +84,7 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 | 순서 | 내용 | 상태 |
 |---|---|---|
-| 1 | Foundation — 토큰 + 컴포넌트 | **일부 구현** (5종 / 13종) |
+| 1 | Foundation — 토큰 + 컴포넌트 | **일부 구현** (5종 / 13종, 상태 Variant 미구현 — `FIGMA_SPEC.md` §3.2) |
 | 2 | 컴포넌트 나머지 8종 — Toast, EmptyState(variant 3종), Switch, Sidebar, Header, BottomPlayer, MiniPlayer, QueuePanel | |
 | 3 | `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail` — 치수 확정 지점 | |
 | 4 | 나머지 PC 14장 | |
@@ -96,7 +96,7 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 ## 알려진 한계
 
-- 간격(`gap`·`pad`)이 아직 `K.S()` 변수에 바인딩되지 않고 숫자로 들어가 있습니다. 화면 빌더를 얹기 전에 바인딩으로 바꿉니다 (`AGENTS.md` 하드코딩 금지).
+- 간격은 `space/*` 변수에 바인딩됩니다(`AL()`의 `gap`·`pad`는 토큰 이름만 받고 0 외 숫자는 에러). 스케일(4·8·16·24·32·48)에 없던 값(2·3·6·10·12)은 가장 가까운 토큰으로 맞췄으므로 치수가 이전과 조금 다릅니다. 최종 치수는 `PC/01~03` 단계에서 확정합니다.
 - 로고 토큰 `color/brand/logo`(#C09B4A)는 정의돼 있고, 로고 이미지는 Sidebar 컴포넌트에서 `public/brand/logo.png`를 씁니다.
 
 ---

@@ -16,7 +16,7 @@
 개발(1단계 구현)은 아직 하지 않는다. D단계가 끝날 때까지 아래를 지킨다.
 
 - **앱 소스(`src/` 등)를 수정하거나 기능을 구현하지 않는다.**
-- 작업 범위는 `PLAN.md` · `FIGMA_SPEC.md` · `README.md` · `figma-plugin/` · 이 파일 · `.cursor/rules/` 뿐이다.
+- 작업 범위는 `PLAN.md` · `FIGMA_SPEC.md` · `README.md` · `figma-plugin/` · 이 파일 · `.cursor/rules/` · `.kiro/steering/` 뿐이다. 규칙 정본은 이 파일이고, 나머지 두 곳은 같은 내용의 도구별 사본이라 이 파일이 바뀌면 함께 맞춘다.
 - 문서에 없는 기능·데이터·화면을 임의로 추가하지 않는다. 필요하면 `PLAN.md`를 먼저 고친다.
 - MVP에 없는 것을 그리거나 만들지 않는다: 음원 다운로드, 순위 변동 ▲▼, 관리자 화면, 실시간 차트, 라이트 테마, 다중 선택 액션 바, 파형 시각화.
 - D단계 산출물은 `/figma-plugin/` (`manifest.json`, `code.js`)과 확정된 토큰·레이아웃 치수다.
