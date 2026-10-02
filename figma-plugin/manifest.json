@@ -6,6 +6,7 @@
   "editorType": ["figma"],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": ["none"],
+    "reasoning": "캔버스에만 그립니다. 외부 통신 없음."
   }
 }
