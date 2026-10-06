@@ -62,7 +62,7 @@ Foundation 검증 뒤 화면을 그릴 때는 `verifyGate` · `components`를 `f
 
 ## 폰트
 
-`Pretendard` → `Noto Sans KR` → `Inter` 순으로 시도하고, 네 웨이트(Regular · Medium · SemiBold · Bold)가 전부 있는 첫 후보를 씁니다.
+`Pretendard` → `Noto Sans KR` → `Inter` 순으로 시도합니다. 설치된 폰트 목록에서 웨이트별 실제 스타일 이름을 찾아 씁니다(Inter는 `Semi Bold`, Pretendard는 `SemiBold`처럼 이름이 달라서). 해당 웨이트가 없으면 가까운 웨이트로 대체하며(예: Noto Sans KR의 SemiBold → Bold), 실패하면 후보별 사유를 에러 메시지에 보여 줍니다.
 
 Pretendard가 없으면 [여기서](https://github.com/orioncactus/pretendard) 설치하세요. 없어도 Inter로 돌아가지만 한글 자간이 다르게 나옵니다.
 

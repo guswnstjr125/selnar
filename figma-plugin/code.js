@@ -105,24 +105,72 @@ const WEIGHTS = ['Regular', 'Medium', 'SemiBold', 'Bold'];
 
 let FONT_FAMILY = 'Inter';
 
+// 웨이트 → 실제 폰트 스타일 이름. 폰트마다 이름이 달라서(Inter는 'Semi Bold', Pretendard는 'SemiBold')
+// 설치된 목록에서 찾아 채웁니다. resolveFont()가 값을 채웁니다.
+let FONT_STYLES = {};
+
+const STYLE_ALIASES = {
+  Regular: ['Regular', 'Normal', 'Book'],
+  Medium: ['Medium'],
+  SemiBold: ['SemiBold', 'Semi Bold', 'Semibold', 'DemiBold', 'Demi Bold'],
+  Bold: ['Bold'],
+};
+
+// 해당 웨이트가 폰트에 없을 때 가까운 웨이트로 대체하는 순서 (예: Noto Sans KR에는 SemiBold가 없음)
+const STYLE_FALLBACK = {
+  Regular: ['Regular'],
+  Medium: ['Medium', 'Regular'],
+  SemiBold: ['SemiBold', 'Bold', 'Medium'],
+  Bold: ['Bold', 'SemiBold'],
+};
+
+/** 웨이트 이름 → 실제 스타일 이름 */
+function fontStyle(weight) {
+  return FONT_STYLES[weight] || weight;
+}
+
 async function resolveFont() {
   const candidates = ['Pretendard', 'Noto Sans KR', 'Inter'];
+  const available = await figma.listAvailableFontsAsync();
 
+  const tried = [];
   for (const family of candidates) {
+    const styles = available.filter((f) => f.fontName.family === family).map((f) => f.fontName.style);
+    if (styles.length === 0) {
+      tried.push(`${family}(미설치)`);
+      continue;
+    }
+
+    // 웨이트별 실제 스타일 이름 찾기 (별칭 → 대체 웨이트 순)
+    const map = {};
+    for (const weight of WEIGHTS) {
+      for (const w of STYLE_FALLBACK[weight]) {
+        const hit = STYLE_ALIASES[w].find((name) => styles.includes(name));
+        if (hit) {
+          map[weight] = hit;
+          break;
+        }
+      }
+    }
+    if (WEIGHTS.some((w) => !map[w])) {
+      tried.push(`${family}(웨이트 부족: ${styles.join(', ')})`);
+      continue;
+    }
+
     try {
-      // 네 웨이트를 전부 로드합니다. 하나라도 없으면 다음 후보로.
-      for (const style of WEIGHTS) {
+      for (const style of new Set(Object.values(map))) {
         await figma.loadFontAsync({ family, style });
       }
       FONT_FAMILY = family;
-      console.log(`[font] ${family} 로드 완료`);
+      FONT_STYLES = map;
+      console.log(`[font] ${family} 로드 완료`, map);
       return family;
     } catch (e) {
-      console.log(`[font] ${family} 사용 불가 → 다음 후보`);
+      tried.push(`${family}(로드 실패: ${e.message})`);
     }
   }
 
-  throw new Error('사용 가능한 폰트가 없습니다. Inter를 설치하세요.');
+  throw new Error(`사용 가능한 폰트가 없습니다. 시도한 결과: ${tried.join(' / ')}. Inter 또는 Pretendard를 설치하세요.`);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -261,7 +309,7 @@ async function buildTokens() {
       st = figma.createTextStyle();
       st.name = name;
     }
-    st.fontName = { family: FONT_FAMILY, style: t.weight };
+    st.fontName = { family: FONT_FAMILY, style: fontStyle(t.weight) };
     st.fontSize = t.size;
     st.lineHeight = { unit: 'PIXELS', value: t.line };
     styleMap[name] = st;
@@ -310,7 +358,7 @@ function bindRadius(node, variable) {
 /** 텍스트 노드 생성 + 스타일/색 바인딩 */
 async function txt(K, content, styleName, colorName) {
   const t = figma.createText();
-  t.fontName = { family: FONT_FAMILY, style: TEXTS[styleName].weight };
+  t.fontName = { family: FONT_FAMILY, style: fontStyle(TEXTS[styleName].weight) };
   t.characters = content;
   await K.T(t, styleName);
   t.fills = [K.C(colorName)];
