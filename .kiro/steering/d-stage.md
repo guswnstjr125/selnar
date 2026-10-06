@@ -1,6 +1,5 @@
 ---
-description: D단계(Figma 설계 중) — 앱 코드 수정 금지
-alwaysApply: true
+inclusion: always
 ---
 
 # 현재 단계: D (Figma 디자인 확정, 진행 중)

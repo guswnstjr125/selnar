@@ -1,7 +1,6 @@
 ---
-description: Figma 플러그인 생성 규칙
-globs: figma-plugin/**
-alwaysApply: false
+inclusion: fileMatch
+fileMatchPattern: ['figma-plugin/**']
 ---
 
 # figma-plugin

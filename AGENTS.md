@@ -16,7 +16,7 @@
 개발(1단계 구현)은 아직 하지 않는다. D단계가 끝날 때까지 아래를 지킨다.
 
 - **앱 소스(`src/` 등)를 수정하거나 기능을 구현하지 않는다.**
-- 작업 범위는 `PLAN.md` · `FIGMA_SPEC.md` · `README.md` · `figma-plugin/` · 이 파일 · `.cursor/rules/` 뿐이다.
+- 작업 범위는 `PLAN.md` · `FIGMA_SPEC.md` · `README.md` · `figma-plugin/` · 이 파일 · `.cursor/rules/` · `.kiro/steering/` 뿐이다. 규칙 정본은 이 파일이고, 나머지 두 곳은 같은 내용의 도구별 사본이라 이 파일이 바뀌면 함께 맞춘다.
 - 문서에 없는 기능·데이터·화면을 임의로 추가하지 않는다. 필요하면 `PLAN.md`를 먼저 고친다.
 - MVP에 없는 것을 그리거나 만들지 않는다: 음원 다운로드, 순위 변동 ▲▼, 관리자 화면, 실시간 차트, 라이트 테마, 다중 선택 액션 바, 파형 시각화.
 - D단계 산출물은 `/figma-plugin/` (`manifest.json`, `code.js`)과 확정된 토큰·레이아웃 치수다.
@@ -36,7 +36,7 @@
 
 - 화면 근거는 `FIGMA_SPEC.md` §3·§3.1, 토큰은 §4, 화면 전환은 `PLAN.md` §5.3만 사용한다
 - 하드코딩 금지: 색상 `K.C()`, 라운드 `K.R()`, 타이포 `K.T()`, 간격 `K.S()`
-- `PLAN.md` §5.1의 9개 라우트에 대응하는 화면만 만든다. `/admin`은 그리지 않는다
+- Figma로 그리는 화면은 `FIGMA_SPEC.md` §3.1이 정한 23장(PC 17 + Mobile 6)이다. 렌더 순서는 Foundation → PC 01·02·03 → 나머지 PC → Mobile, 한 번에 다 켜지 않는다 (`PLAN.md` §9). `/admin`은 그리지 않는다
 - 빈 상태 · 로딩 상태도 함께 렌더한다
 - Primary 버튼 라벨에는 흰색 대신 `color/text/on-brand`를 쓴다
 
