@@ -3,7 +3,7 @@
 D단계 산출물. `FIGMA_SPEC.md` §4 토큰과 §3 화면 명세를 Figma 캔버스에 자동 렌더링합니다. 기능 범위는 `PLAN.md`가 정합니다.
 
 - **기준 문서:** [`../FIGMA_SPEC.md`](../FIGMA_SPEC.md) v1.6
-- **현재 구현 범위:** Foundation 전체 + `PC/01-Home` · `PC/02-Chart` · `PC/03-TrackDetail` · `PC/03-TrackDetail-Locked`. **코드만 작성됐고 Figma에서 실행해 확인하기 전 상태입니다**
+- **현재 구현 범위:** Foundation 전체 + `PC/01-Home` · `PC/02-Chart` · `PC/03-TrackDetail` · `PC/03-TrackDetail-Locked`. **Foundation은 Figma 실행으로 확인됨**(컴포넌트 13종 · Variant 배치 · 변수 바인딩 · 폰트 폴백). **PC 화면 4장은 코드만 작성됐고 Figma에서 실행해 확인하기 전 상태입니다**
 
 ---
 
@@ -90,7 +90,7 @@ await K.T(textNode, 'text/body');                 // 타이포 — 스타일 적
 
 | 순서 | 내용 | 상태 |
 |---|---|---|
-| 1 | Foundation — 토큰 + 컴포넌트 13종 + 상태 Variant | **코드 작성됨 · Figma 실행 검증 필요** |
+| 1 | Foundation — 토큰 + 컴포넌트 13종 + 상태 Variant | **확인됨** (Figma 실행 · 변수 바인딩 · 상태별 높이 · 아이콘 · 사이드바 버튼) |
 | 2 | `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail`(+`-Locked`) — 치수 확정 지점 | **코드 작성됨 · Figma 실행 검증 필요** |
 | 3 | 끝. 나머지 PC 13장과 Mobile 6장은 Figma로 그리지 않고 코드로 구현 (`PLAN.md` §9) | **범위 확정** |
 
