@@ -2,7 +2,7 @@
 
 AI 음악 스트리밍 웹 서비스 `Selnar`의 UI/UX를 Figma 플러그인 스크립트(`manifest.json` + `code.js`)로 자동 생성하기 위한 명세서입니다.
 
-- **문서 버전:** v1.6 · 2026-10-02
+- **문서 버전:** v1.7 · 2026-10-06
 - **저장소 위치:** `github.com/guswnstjr125/selnar` → `/figma-plugin/`
 
 **문서 관계**
@@ -85,6 +85,8 @@ FLO와 VIBE는 개인화 추천을 전면에 걸었고 둘 다 점유율에서 �
 - 드래그 핸들 없음 — 드래그 재정렬은 6단계 후보
 - 패널 상태는 UI-only 로컬 상태. `playerStore`에 포함하지 않음
 - `Foundation` 컴포넌트에 `QueuePanel` 추가 (`§3.1` 프레임 목록 반영)
+
+**모바일 셸** — 상단 바(로고 `SELNAR` · 검색 · 프로필) / 본문 / 미니 플레이어(64px) / 하단 탭 3개(홈 · 차트 · 보관함). 규칙은 `PLAN.md` §5.2.
 
 **모바일 플레이어** — 미니바(64px) 탭 시 풀스크린으로 확장. 미니바에는 커버 · 제목 · 재생 버튼만.
 
@@ -195,7 +197,7 @@ Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · P
 
 작은 것부터 만듭니다. `Badge` → `Button` → `Input` → `Toast` → `EmptyState` → `TrackRow` → `TrackCard` → 셸 3종(`Sidebar` · `Header` · `BottomPlayer`) → `QueuePanel`.
 
-> **Figma 렌더 범위 (v1.6 확정, `PLAN.md` §9)** — 아래 표와 Mobile 목록은 **구현해야 할 화면 목록**이고, Figma 프레임으로 그리는 것은 `PC/01-Home` `PC/02-Chart` `PC/03-TrackDetail` `PC/03-TrackDetail-Locked` 4장뿐입니다. 나머지는 프레임 없이 §3 명세로 코드에서 바로 구현합니다.
+> **Figma 렌더 범위 (v1.7)** — 아래 표와 Mobile 목록 **23장 전부**를 Figma 프레임으로 그립니다(`PLAN.md` §9, v1.8). 렌더 순서는 아래 "렌더 순서"를 따르고 한 번에 다 켜지 않습니다.
 
 **01 · PC (1920)** — 17장
 
@@ -219,11 +221,12 @@ Figma 파일은 페이지 3장으로 나눕니다. `00 · Foundation` / `01 · P
 
 검색 · 로그인 · 플레이리스트 · 창작자 채널은 PC 레이아웃을 세로 스택하면 되므로 모바일 프레임을 만들지 않습니다.
 
-**렌더 순서** — Figma 렌더 대상은 Foundation + 4장입니다. 한 번에 다 켜지 않습니다. 죽으면 어디서 죽었는지 못 찾습니다.
+**렌더 순서** — 한 번에 23장을 켜지 않습니다. 죽으면 어디서 죽었는지 못 찾습니다.
 
 1. Foundation (토큰 + 컴포넌트 13종) → 변수 바인딩이 실제로 붙었는지 검증
 2. `PC/01` `PC/02` `PC/03` → 컴포넌트가 실전에서 검증되는 지점. **치수 변경은 여기서 전부** 끝냅니다
-3. 끝. 나머지 PC 13장과 Mobile 6장은 Figma로 그리지 않고 코드로 구현 (`PLAN.md` §9)
+3. 나머지 PC 13장
+4. Mobile 6장
 
 세로 치수는 AutoLayout hug가 결정하므로 명세에 적지 않습니다.
 
@@ -365,7 +368,8 @@ code.js 구성 계층:
 5. 공통 컴포넌트     Sidebar, Header, BottomPlayer, QueuePanel, MiniPlayer,
                     TrackRow, TrackCard, Badge, Button, EmptyState, Input, Switch, Toast
 6. 화면 빌더         buildHome / Chart / TrackDetail (PC 3화면만. 나머지는 코드로 구현) /
-                    (PC 3화면 + TrackDetail-Locked. 나머지 화면 빌더는 만들지 않음)
+                    (Home / Chart / TrackDetail / Upload / Library /
+                    Artist / Search / Playlist / Auth — PC · Mobile은 §3.1 목록만)
 7. main()           토큰 생성 → plan 배열 순회 → 그리드 자동 배치
 ```
 
@@ -395,6 +399,7 @@ code.js 구성 계층:
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| v1.7 | 2026-10-06 | §3.1 Figma 렌더 범위를 전체 23장으로 복원(`PLAN.md` v1.8), 모바일 셸 명세 추가. 토큰 변경 없음 |
 | v1.6 | 2026-10-02 | §3.1 Figma 렌더 범위를 Foundation + 4장으로 축소 (`PLAN.md` v1.7). 나머지 화면은 명세만 유지 |
 | v1.5 | 2026-10-02 | §3 헤더 2상태 · 홈 구성 기준 · 로딩/에러 참조 추가, §3.2 컴포넌트 상태 Variant 표 신규. 토큰 변경 없음 |
 | v1.4 | 2026-09-14 | §5 헤더 계층 정상화(5.1 숫자 표기, 5.2 오디오 사양), §3.1 컴포넌트·프레임 수치 일치(13종, PC 17장, 총 23장), §6 QueuePanel 추가 |

@@ -36,7 +36,7 @@
 
 - 화면 근거는 `FIGMA_SPEC.md` §3·§3.1, 토큰은 §4, 화면 전환은 `PLAN.md` §5.3만 사용한다
 - 하드코딩 금지: 색상 `K.C()`, 라운드 `K.R()`, 타이포 `K.T()`, 간격 `K.S()`
-- Figma로 그리는 화면은 `FIGMA_SPEC.md` §3.1이 정한 4장(`PC/01-Home` · `PC/02-Chart` · `PC/03-TrackDetail` · `-Locked`)뿐이다. 나머지 화면은 그리지 않고 코드로 구현한다 (`PLAN.md` §9). `/admin`은 그리지 않는다
+- Figma로 그리는 화면은 `FIGMA_SPEC.md` §3.1이 정한 23장(PC 17 + Mobile 6)이다. 렌더 순서는 Foundation → PC 01·02·03 → 나머지 PC → Mobile, 한 번에 다 켜지 않는다 (`PLAN.md` §9). `/admin`은 그리지 않는다
 - 빈 상태 · 로딩 상태도 함께 렌더한다
 - Primary 버튼 라벨에는 흰색 대신 `color/text/on-brand`를 쓴다
 

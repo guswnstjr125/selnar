@@ -24,6 +24,25 @@ const CONFIG = {
     chartPC: false,     // PC/02-Chart
     trackDetailPC: false, // PC/03-TrackDetail
     trackDetailLockedPC: false, // PC/03-TrackDetail-Locked
+    searchPC: false,            // PC/04-Search
+    searchEmptyPC: false,       // PC/04-Search-Empty
+    authLoginPC: false,         // PC/05-Auth-Login
+    authSignupPC: false,        // PC/05-Auth-Signup
+    uploadEmptyPC: false,       // PC/06-Upload-Empty
+    uploadFilledPC: false,      // PC/06-Upload-Filled
+    uploadProgressPC: false,    // PC/06-Upload-Progress
+    libraryPC: false,           // PC/07-Library
+    libraryEmptyPC: false,      // PC/07-Library-Empty
+    playlistPC: false,          // PC/08-Playlist
+    playlistEditPC: false,      // PC/08-Playlist-TitleEdit
+    artistPC: false,            // PC/09-Artist
+    queuePanelPC: false,        // PC/QueuePanel
+    homeMobile: false,          // M/01-Home
+    chartMobile: false,         // M/02-Chart
+    trackDetailMobile: false,   // M/03-TrackDetail
+    uploadMobile: false,        // M/06-Upload
+    libraryMobile: false,       // M/07-Library
+    playerFullscreenMobile: false, // M/Player-Fullscreen
   },
 };
 
@@ -942,8 +961,8 @@ function hideInstanceLabel(instance, label) {
   }
 }
 
-async function buttonInstance(label, kind = 'primary') {
-  const instance = await foundationInstance('Button', { kind, state: 'default' });
+async function buttonInstance(label, kind = 'primary', state = 'default') {
+  const instance = await foundationInstance('Button', { kind, state });
   const labelNode = instanceTexts(instance)[0];
   if (labelNode) labelNode.characters = label;
   return instance;
@@ -981,13 +1000,17 @@ async function trackRowInstance(K, o = {}, state = 'default') {
     '♥ 1.2K': `♥ ${o.likes || '1.2K'}`,
   });
   if (!o.isNew) hideInstanceLabel(instance, 'NEW');
+  if (o.noRank) {
+    const rankNode = instanceTexts(instance)[0];
+    if (rankNode) rankNode.visible = false;
+  }
 
   const toolNode = instanceTexts(instance).find((node) => node.characters === (o.tool || 'Suno'));
   if (toolNode && toolNode.parent) {
     const token = o.tool === 'Udio' ? 'color/badge/udio' : 'color/badge/suno';
     toolNode.parent.fills = [K.C(token)];
   }
-  if (o.compact) {
+  if (o.compact || o.mobile) {
     const hiddenLabels = [
       o.genre || '일렉트로닉',
       o.duration || '3:24',
@@ -997,7 +1020,7 @@ async function trackRowInstance(K, o = {}, state = 'default') {
     for (const node of instanceTexts(instance)) {
       if (hiddenLabels.includes(node.characters)) node.visible = false;
     }
-    if (toolNode && toolNode.parent) toolNode.parent.visible = false;
+    if (o.compact && toolNode && toolNode.parent) toolNode.parent.visible = false;
   }
   return instance;
 }
@@ -1341,6 +1364,626 @@ async function buildTrackDetailLockedPC(K) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// 8-B. 나머지 PC 화면 · Mobile 화면 (FIGMA_SPEC.md §3.1)
+// ─────────────────────────────────────────────────────────────
+
+const PAGE_MOBILE = '02 · Mobile (390)';
+const MOBILE_WIDTH = 390;
+
+function mobileInnerWidth() {
+  return MOBILE_WIDTH - SPACES['space/md'] * 2;
+}
+
+async function inputInstance(text, filled = false, K = null) {
+  const inst = await foundationInstance('Input', { state: 'default' });
+  const t = instanceTexts(inst)[0];
+  if (t) {
+    t.characters = text;
+    if (filled && K) t.fills = [K.C('color/text/main')];
+  }
+  return inst;
+}
+
+/** 카드형 패널. w를 주면 고정 폭 */
+function panel(K, name, w = null, padToken = 'space/lg') {
+  const f = AL({ name, dir: 'V', gap: 'space/md', pad: padToken, w: w || undefined, align: 'MIN' });
+  f.fills = [K.C('color/bg/surface')];
+  bindRadius(f, K.R('radius/lg'));
+  return f;
+}
+
+async function tabRow(K, name, labels, active = 0) {
+  const row = AL({ name, dir: 'H', gap: 'space/sm', align: 'MIN' });
+  for (const [i, label] of labels.entries()) {
+    row.appendChild(await buttonInstance(label, i === active ? 'primary' : 'pill'));
+  }
+  return row;
+}
+
+/** 가로 스크롤 영역(넘치는 부분은 잘림) */
+function scrollViewport(name, child) {
+  const viewport = AL({ name, dir: 'H', gap: 0, align: 'MIN' });
+  viewport.clipsContent = true;
+  viewport.appendChild(child);
+  return viewport;
+}
+
+async function labeledField(K, label, text, filled = false) {
+  const f = AL({ name: label, dir: 'V', gap: 'space/xs', align: 'MIN' });
+  f.appendChild(await txt(K, label, 'text/caption', 'color/text/muted'));
+  const inp = await inputInstance(text, filled, K);
+  f.appendChild(inp);
+  fillCross(f, inp);
+  return f;
+}
+
+async function checkbox(K, label, checked) {
+  const row = AL({ name: `Checkbox/${checked ? 'checked' : 'unchecked'}`, dir: 'H', gap: 'space/sm' });
+  const mark = AL({ name: 'box', dir: 'H', gap: 0, pad: 'space/xs' });
+  mark.fills = [K.C(checked ? 'color/brand/primary' : 'color/bg/elevated')];
+  mark.strokes = [K.C('color/border/subtle')];
+  mark.strokeWeight = 1;
+  bindRadius(mark, K.R('radius/sm'));
+  mark.appendChild(await txt(K, checked ? '✓' : ' ', 'text/caption', checked ? 'color/text/on-brand' : 'color/text/muted'));
+  row.appendChild(mark);
+  row.appendChild(await txt(K, label, 'text/body', 'color/text/main'));
+  return row;
+}
+
+async function pageTitle(K, title, caption) {
+  const row = AL({ name: `${title}/title`, dir: 'H', gap: 'space/md', align: 'MAX' });
+  row.appendChild(await txt(K, title, 'text/h1', 'color/text/main'));
+  if (caption) {
+    const spacer = figma.createFrame();
+    spacer.name = 'spacer';
+    spacer.resize(1, 1);
+    spacer.fills = [];
+    row.appendChild(spacer);
+    spacer.layoutGrow = 1;
+    row.appendChild(await txt(K, caption, 'text/caption', 'color/text/muted'));
+  }
+  return row;
+}
+
+function pcContent(name) {
+  return AL({ name, dir: 'V', gap: 'space/lg', pad: 'space/lg', w: PAGE_CONTENT_WIDTH, align: 'MIN' });
+}
+
+async function sampleRows(K, parent, count, o = {}) {
+  for (let i = 0; i < count; i += 1) {
+    const sample = SCREEN_TRACKS[i % SCREEN_TRACKS.length];
+    const row = await trackRowInstance(K, Object.assign({
+      rank: i + 1,
+      title: sample.title,
+      artist: sample.artist,
+      duration: sample.duration,
+      tool: i % 2 === 0 ? 'Suno' : 'Udio',
+      genre: i % 2 === 0 ? '일렉트로닉' : '발라드',
+      likes: '1.2K',
+      isNew: i < SCREEN_TRACKS.length,
+    }, o));
+    appendStretch(parent, row);
+  }
+}
+
+async function emptyStateInstance(K, texts = {}, hideCta = false) {
+  const inst = await foundationInstance('EmptyState', { variant: 'default' });
+  replaceInstanceText(inst, texts);
+  if (hideCta) hideInstanceLabel(inst, '곡 둘러보기');
+  return inst;
+}
+
+// ── PC ──────────────────────────────────────────────────────
+
+/** PC/04-Search, PC/04-Search-Empty */
+async function buildSearchPC(K, empty = false) {
+  const content = pcContent('Search/content');
+  appendStretch(content, await pageTitle(K, empty ? '"zzz" 검색 결과' : '"새벽" 검색 결과', empty ? '결과 0개' : '결과 12개'));
+  content.appendChild(await tabRow(K, 'Search/tabs', ['곡', '창작자', '프롬프트'], 0));
+
+  if (!empty) {
+    const rows = AL({ name: 'Search/results', dir: 'V', gap: 'space/xs', align: 'MIN' });
+    await sampleRows(K, rows, 6, { noRank: true });
+    appendStretch(content, rows);
+  } else {
+    const box = AL({ name: 'Search/empty', dir: 'V', gap: 'space/lg', pad: 'space/xl', align: 'CENTER' });
+    box.appendChild(await emptyStateInstance(K, {
+      '아직 곡이 없어요': '검색 결과가 없어요',
+      '마음에 드는 곡에 하트를 눌러 보세요': '다른 키워드로 검색해 보세요',
+    }, true));
+    box.appendChild(await txt(K, '인기 검색어', 'text/caption', 'color/text/muted'));
+    const chips = AL({ name: 'Search/popular-chips', dir: 'H', gap: 'space/sm', align: 'MIN' });
+    for (const label of ['신스팝', '발라드', '시티팝', '로파이', '케이팝']) {
+      chips.appendChild(await buttonInstance(label, 'pill'));
+    }
+    box.appendChild(chips);
+    appendStretch(content, box);
+  }
+  return buildPCShell(K, empty ? 'PC/04-Search-Empty' : 'PC/04-Search', content);
+}
+
+/** PC/05-Auth-Login, PC/05-Auth-Signup — 사이드바 · 플레이어 없는 단독 레이아웃 */
+async function buildAuthPC(K, signup = false) {
+  const screen = AL({
+    name: signup ? 'PC/05-Auth-Signup' : 'PC/05-Auth-Login',
+    dir: 'V', gap: 'space/lg', w: PC_WIDTH, h: 1080, align: 'CENTER',
+  });
+  screen.fills = [K.C('color/bg/base')];
+  screen.primaryAxisAlignItems = 'CENTER';
+  screen.appendChild(await logoPlaceholder(K));
+
+  const card = panel(K, 'Auth/card', 400);
+  card.appendChild(await tabRow(K, 'Auth/tabs', ['로그인', '회원가입'], signup ? 1 : 0));
+  const fields = AL({ name: 'Auth/fields', dir: 'V', gap: 'space/md', align: 'MIN' });
+  if (signup) {
+    appendStretch(fields, await labeledField(K, '사용자명 (username)', '@username'));
+    appendStretch(fields, await labeledField(K, '표시명', '표시될 이름'));
+  }
+  appendStretch(fields, await labeledField(K, '이메일', '이메일'));
+  appendStretch(fields, await labeledField(K, '비밀번호', '비밀번호'));
+  appendStretch(card, fields);
+
+  const submit = await buttonInstance(signup ? '회원가입' : '로그인', 'primary');
+  appendStretch(card, submit);
+  try { submit.primaryAxisAlignItems = 'CENTER'; } catch (e) { console.warn('[auth] 버튼 라벨 정렬 실패', e.message); }
+
+  const divider = await txt(K, '또는', 'text/caption', 'color/text/muted');
+  divider.textAlignHorizontal = 'CENTER';
+  card.appendChild(divider);
+  fillCross(card, divider);
+
+  const google = await buttonInstance('Google로 계속하기', 'ghost', 'disabled');
+  appendStretch(card, google);
+  try { google.primaryAxisAlignItems = 'CENTER'; } catch (e) { console.warn('[auth] 버튼 라벨 정렬 실패', e.message); }
+
+  screen.appendChild(card);
+  return screen;
+}
+
+/** 업로드 폼 — PC · Mobile 공용. state: empty | filled | progress */
+async function buildUploadForm(K, state, width, padToken = 'space/lg') {
+  const inner = width - SPACES[padToken] * 2;
+  const filled = state !== 'empty';
+  const form = AL({ name: 'Upload/form', dir: 'V', gap: 'space/lg', w: width, align: 'MIN' });
+
+  // 1) 음원 업로더
+  const audio = panel(K, '음원 업로더', null, padToken);
+  audio.appendChild(await txt(K, '음원 업로더', 'text/h2', 'color/text/main'));
+  const drop = AL({ name: `dropzone/${state}`, dir: 'V', gap: 'space/sm', pad: 'space/xl', align: 'CENTER' });
+  drop.primaryAxisAlignItems = 'CENTER';
+  drop.strokes = [K.C(filled ? 'color/brand/primary' : 'color/border/subtle')];
+  drop.strokeWeight = 2;
+  drop.dashPattern = [8, 8];
+  bindRadius(drop, K.R('radius/md'));
+  if (state === 'empty') {
+    drop.appendChild(await glyph(K, '↑', 'color/text/muted', 'text/h1'));
+    drop.appendChild(await txt(K, '.mp3 · .wav 파일을 끌어다 놓으세요', 'text/body', 'color/text/muted'));
+    drop.appendChild(await buttonInstance('파일 선택', 'ghost'));
+  } else {
+    drop.appendChild(await txt(K, '새벽 세 시의 네온.mp3', 'text/bodyB', 'color/text/main'));
+    if (state === 'filled') {
+      drop.appendChild(await txt(K, '재생시간 3:24 · 자동 추출', 'text/caption', 'color/text/muted'));
+      drop.appendChild(await buttonInstance('파일 교체', 'ghost'));
+    } else {
+      drop.appendChild(slider(K, inner - SPACES['space/xl'] * 2 - 4, 0.62));
+      drop.appendChild(await txt(K, '업로드 중… 62%', 'text/caption', 'color/text/muted'));
+    }
+  }
+  appendStretch(audio, drop);
+  appendStretch(form, audio);
+
+  // 2) 커버
+  const cover = panel(K, '커버 등록', null, padToken);
+  cover.appendChild(await txt(K, '커버 등록', 'text/h2', 'color/text/main'));
+  const coverRow = AL({ name: 'cover/row', dir: 'H', gap: 'space/lg', align: 'CENTER' });
+  coverRow.appendChild(box(K, 'cover-preview (1:1)', 160, 160, filled ? 'color/brand/primary' : 'color/bg/elevated', 'radius/md'));
+  const coverMeta = AL({ name: 'cover/meta', dir: 'V', gap: 'space/sm', align: 'MIN' });
+  coverMeta.appendChild(await txt(K, '1:1 비율 이미지', 'text/caption', 'color/text/muted'));
+  coverMeta.appendChild(await buttonInstance('이미지 선택', 'ghost'));
+  coverRow.appendChild(coverMeta);
+  cover.appendChild(coverRow);
+  appendStretch(form, cover);
+
+  // 3) 메타데이터
+  const meta = panel(K, '메타데이터', null, padToken);
+  meta.appendChild(await txt(K, '메타데이터', 'text/h2', 'color/text/main'));
+  appendStretch(meta, await labeledField(K, '제목', filled ? '새벽 세 시의 네온' : '곡 제목', filled));
+  appendStretch(meta, await labeledField(K, '설명', filled ? '네온 불빛 아래의 새벽 산책' : '곡 설명', filled));
+  appendStretch(meta, await labeledField(K, '장르', filled ? '일렉트로닉 ▾' : '장르 선택 ▾', filled));
+  appendStretch(meta, await labeledField(K, '언어', '한국어 ▾', true));
+  appendStretch(form, meta);
+
+  // 4) AI 생성 정보
+  const ai = panel(K, 'AI 생성 정보', null, padToken);
+  ai.appendChild(await txt(K, 'AI 생성 정보', 'text/h2', 'color/text/main'));
+  ai.appendChild(await tabRow(K, 'ai-tool', ['Suno', 'Udio', '기타'], filled ? 0 : -1));
+  appendStretch(ai, await labeledField(K, '모델 버전', filled ? 'v4.5' : '예: v4.5', filled));
+  appendStretch(ai, await labeledField(K, '프롬프트', filled ? '80s synthpop, nostalgic, emotional female vocal, 120bpm' : '스타일 프롬프트', filled));
+  appendStretch(ai, await labeledField(K, '네거티브 프롬프트', filled ? '없음' : '네거티브 프롬프트', filled));
+  const pub = AL({ name: 'prompt-public', dir: 'H', gap: 'space/md' });
+  pub.appendChild(await foundationInstance('Switch', { value: 'on', state: 'default' }));
+  pub.appendChild(await txt(K, '프롬프트 공개', 'text/body', 'color/text/main'));
+  ai.appendChild(pub);
+  appendStretch(form, ai);
+
+  // 5) 저작권 서약 + 업로드
+  form.appendChild(await checkbox(K, '직접 생성한 음원이며 저작권 및 이용약관을 준수합니다', filled));
+  const submit = await buttonInstance(
+    state === 'progress' ? '업로드 중…' : '업로드',
+    'primary',
+    state === 'filled' ? 'default' : 'disabled'
+  );
+  appendStretch(form, submit);
+  try { submit.primaryAxisAlignItems = 'CENTER'; } catch (e) { console.warn('[upload] 버튼 라벨 정렬 실패', e.message); }
+  return form;
+}
+
+/** PC/06-Upload-Empty · -Filled · -Progress */
+async function buildUploadPC(K, state) {
+  const content = pcContent('Upload/content');
+  content.appendChild(await txt(K, '곡 업로드', 'text/h1', 'color/text/main'));
+  content.appendChild(await buildUploadForm(K, state, 720));
+  const names = { empty: 'PC/06-Upload-Empty', filled: 'PC/06-Upload-Filled', progress: 'PC/06-Upload-Progress' };
+  return buildPCShell(K, names[state], content);
+}
+
+/** PC/07-Library, PC/07-Library-Empty */
+async function buildLibraryPC(K, empty = false) {
+  const content = pcContent('Library/content');
+  content.appendChild(await txt(K, '내 보관함', 'text/h1', 'color/text/main'));
+  content.appendChild(await tabRow(K, 'Library/tabs', ['좋아요한 곡', '내 플레이리스트', '내가 업로드한 곡'], 0));
+  if (!empty) {
+    const rows = AL({ name: 'Library/liked', dir: 'V', gap: 'space/xs', align: 'MIN' });
+    await sampleRows(K, rows, 6);
+    appendStretch(content, rows);
+  } else {
+    const box = AL({ name: 'Library/empty', dir: 'V', gap: 'space/lg', pad: 'space/xl', align: 'CENTER' });
+    box.appendChild(await emptyStateInstance(K, {
+      '아직 곡이 없어요': '아직 좋아요한 곡이 없어요',
+    }));
+    appendStretch(content, box);
+  }
+  return buildPCShell(K, empty ? 'PC/07-Library-Empty' : 'PC/07-Library', content);
+}
+
+/** PC/08-Playlist, PC/08-Playlist-TitleEdit */
+async function buildPlaylistPC(K, editing = false) {
+  const content = pcContent('Playlist/content');
+
+  const header = AL({ name: 'Playlist/header', dir: 'H', gap: 'space/xl', pad: 'space/xl', align: 'CENTER' });
+  header.fills = [K.C('color/bg/surface')];
+  bindRadius(header, K.R('radius/lg'));
+
+  const mosaic = AL({ name: 'cover-mosaic (4분할)', dir: 'V', gap: 0 });
+  mosaic.clipsContent = true;
+  bindRadius(mosaic, K.R('radius/md'));
+  for (const pair of [['color/brand/primary', 'color/badge/udio'], ['color/badge/suno', 'color/bg/hover']]) {
+    const r = AL({ name: 'mosaic-row', dir: 'H', gap: 0 });
+    for (const token of pair) r.appendChild(box(K, 'tile', 100, 100, token));
+    mosaic.appendChild(r);
+  }
+  header.appendChild(mosaic);
+
+  const info = AL({ name: 'Playlist/info', dir: 'V', gap: 'space/md', align: 'MIN' });
+  const titleRow = AL({ name: editing ? 'title (edit)' : 'title (hover: 편집 아이콘)', dir: 'H', gap: 'space/sm' });
+  if (editing) {
+    titleRow.appendChild(await inputInstance('새 플레이리스트', true, K));
+    titleRow.appendChild(await txt(K, 'Enter 저장 · Esc 취소', 'text/caption', 'color/text/muted'));
+  } else {
+    titleRow.appendChild(await txt(K, '새 플레이리스트', 'text/h1', 'color/text/main'));
+    titleRow.appendChild(await glyph(K, '✎'));
+  }
+  info.appendChild(titleRow);
+  info.appendChild(await txt(K, '김하늘 · 6곡 · 총 21:48', 'text/caption', 'color/text/muted'));
+  const actions = AL({ name: 'Playlist/actions', dir: 'H', gap: 'space/sm' });
+  actions.appendChild(await buttonInstance('전체 재생', 'primary'));
+  actions.appendChild(await buttonInstance('좋아요', 'ghost'));
+  info.appendChild(actions);
+  header.appendChild(info);
+  appendStretch(content, header);
+
+  const list = AL({ name: 'Playlist/tracks', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  for (let i = 0; i < 6; i += 1) {
+    const sample = SCREEN_TRACKS[i % SCREEN_TRACKS.length];
+    const line = AL({ name: 'playlist-row', dir: 'H', gap: 'space/sm', align: 'CENTER' });
+    line.appendChild(await glyph(K, '≡'));
+    const row = await trackRowInstance(K, {
+      rank: i + 1, title: sample.title, artist: sample.artist, duration: sample.duration,
+      tool: i % 2 === 0 ? 'Suno' : 'Udio', genre: i % 2 === 0 ? '일렉트로닉' : '발라드', likes: '1.2K',
+    });
+    line.appendChild(row);
+    row.layoutGrow = 1;
+    appendStretch(list, line);
+  }
+  appendStretch(content, list);
+  return buildPCShell(K, editing ? 'PC/08-Playlist-TitleEdit' : 'PC/08-Playlist', content);
+}
+
+/** PC/09-Artist */
+async function buildArtistPC(K) {
+  const content = pcContent('Artist/content');
+
+  const head = AL({ name: 'Artist/profile', dir: 'H', gap: 'space/xl', pad: 'space/xl', align: 'CENTER' });
+  head.fills = [K.C('color/bg/surface')];
+  bindRadius(head, K.R('radius/lg'));
+  const avatar = AL({ name: 'avatar', dir: 'H', gap: 0, pad: 'space/xl' });
+  avatar.fills = [K.C('color/bg/elevated')];
+  bindRadius(avatar, K.R('radius/full'));
+  avatar.appendChild(await txt(K, '김', 'text/display', 'color/text/main'));
+  head.appendChild(avatar);
+  const info = AL({ name: 'Artist/info', dir: 'V', gap: 'space/sm', align: 'MIN' });
+  info.appendChild(await txt(K, '김하늘', 'text/h1', 'color/text/main'));
+  info.appendChild(await txt(K, '@kimhaneul', 'text/caption', 'color/text/muted'));
+  info.appendChild(await txt(K, '신스팝과 몽환적인 보컬을 만듭니다.', 'text/body', 'color/text/muted'));
+  info.appendChild(await txt(K, '총 곡 수 24 · 총 재생수 1.2M', 'text/caption', 'color/text/muted'));
+  head.appendChild(info);
+  info.layoutGrow = 1;
+  head.appendChild(await buttonInstance('프로필 편집', 'ghost'));
+  appendStretch(content, head);
+
+  const top = AL({ name: '대표곡', dir: 'V', gap: 'space/md', align: 'MIN' });
+  appendStretch(top, await sectionHeading(K, '대표곡', '재생수 상위 3곡'));
+  const cards = AL({ name: 'top-cards', dir: 'H', gap: 'space/md', align: 'MIN' });
+  for (const s of SCREEN_TRACKS) cards.appendChild(await trackCardInstance({ title: s.title, artist: s.artist }));
+  top.appendChild(cards);
+  appendStretch(content, top);
+
+  const all = AL({ name: '전체 곡 목록', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  appendStretch(all, await sectionHeading(K, '전체 곡', '순위 컬럼 없음'));
+  await sampleRows(K, all, 6, { noRank: true });
+  appendStretch(content, all);
+  return buildPCShell(K, 'PC/09-Artist', content);
+}
+
+/** PC/QueuePanel — BottomPlayer 위 오버레이 */
+async function buildQueuePanelPC(K) {
+  const content = pcContent('QueuePanel/content');
+  content.appendChild(await txt(K, '차트', 'text/h1', 'color/text/main'));
+  const rows = AL({ name: 'rows', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  await sampleRows(K, rows, 4);
+  appendStretch(content, rows);
+
+  const screen = await buildPCShell(K, 'PC/QueuePanel', content);
+  const player = screen.children.find((n) => n.name === 'BottomPlayer instance');
+  const panelInst = await foundationInstance('QueuePanel');
+  screen.appendChild(panelInst);
+  panelInst.layoutPositioning = 'ABSOLUTE';
+  panelInst.x = PC_WIDTH - panelInst.width - SPACES['space/lg'];
+  panelInst.y = screen.height - (player ? player.height : 0) - panelInst.height - SPACES['space/sm'];
+  return screen;
+}
+
+// ── Mobile ──────────────────────────────────────────────────
+
+/** 모바일 셸: 상단 바 / 본문 / 미니 플레이어 / 하단 탭 3개 (PLAN.md §5.2) */
+async function buildMobileShell(K, frameName, content, activeTab = 0) {
+  const screen = AL({ name: frameName, dir: 'V', gap: 0, w: MOBILE_WIDTH, align: 'MIN' });
+  screen.fills = [K.C('color/bg/base')];
+
+  const bar = AL({ name: 'Mobile/topbar', dir: 'H', gap: 'space/md', pad: 'space/md', align: 'CENTER' });
+  bar.appendChild(await logoPlaceholder(K));
+  const spacer = figma.createFrame();
+  spacer.name = 'spacer';
+  spacer.resize(1, 1);
+  spacer.fills = [];
+  bar.appendChild(spacer);
+  spacer.layoutGrow = 1;
+  bar.appendChild(await glyph(K, '⌕', 'color/text/main', 'text/h2'));
+  const avatar = AL({ name: 'avatar', dir: 'H', gap: 0, pad: 'space/sm' });
+  avatar.fills = [K.C('color/bg/hover')];
+  bindRadius(avatar, K.R('radius/full'));
+  avatar.appendChild(await txt(K, '김', 'text/bodyB', 'color/text/main'));
+  bar.appendChild(avatar);
+  screen.appendChild(bar);
+  fillCross(screen, bar);
+
+  screen.appendChild(content);
+  fillCross(screen, content);
+
+  const mini = await foundationInstance('MiniPlayer');
+  screen.appendChild(mini);
+  fillCross(screen, mini);
+
+  const tabs = AL({ name: 'Mobile/tabbar', dir: 'H', gap: 0, pad: 'space/sm', align: 'CENTER' });
+  tabs.fills = [K.C('color/bg/surface')];
+  for (const [i, [icon, label]] of [['⌂', '홈'], ['♫', '차트'], ['♥', '보관함']].entries()) {
+    const item = AL({ name: `tab/${label}`, dir: 'V', gap: 'space/xs', align: 'CENTER' });
+    const color = i === activeTab ? 'color/brand/primary' : 'color/text/muted';
+    item.appendChild(await glyph(K, icon, color, 'text/h2'));
+    item.appendChild(await txt(K, label, 'text/caption', color));
+    tabs.appendChild(item);
+    item.layoutGrow = 1;
+  }
+  screen.appendChild(tabs);
+  fillCross(screen, tabs);
+  return screen;
+}
+
+function mobileContent(name) {
+  return AL({ name, dir: 'V', gap: 'space/xl', pad: 'space/md', w: MOBILE_WIDTH, align: 'MIN' });
+}
+
+async function mobileRows(K, parent, count, o = {}) {
+  await sampleRows(K, parent, count, Object.assign({ mobile: true }, o));
+}
+
+/** M/01-Home */
+async function buildHomeMobile(K) {
+  const content = mobileContent('Home/content');
+
+  const hero = panel(K, 'Hero/이주의 추천', null, 'space/md');
+  const art = box(K, 'cover', 100, 200, 'color/bg/elevated', 'radius/md');
+  hero.appendChild(art);
+  art.layoutSizingHorizontal = 'FILL';
+  hero.appendChild(await txt(K, '이주의 추천 AI 트랙', 'text/bodyB', 'color/brand/primary'));
+  hero.appendChild(await txt(K, '새벽 세 시의 네온', 'text/h1', 'color/text/main'));
+  const actions = AL({ name: 'Hero/actions', dir: 'H', gap: 'space/sm' });
+  actions.appendChild(await buttonInstance('즉시 재생', 'primary'));
+  actions.appendChild(await buttonInstance('프롬프트 보기', 'ghost'));
+  hero.appendChild(actions);
+  appendStretch(content, hero);
+
+  for (const [title, tool] of [['Suno 핫트랙', 'Suno'], ['Udio 핫트랙', 'Udio']]) {
+    const section = AL({ name: title, dir: 'V', gap: 'space/md', align: 'MIN' });
+    appendStretch(section, await sectionHeading(K, title));
+    appendStretch(section, await buildCardStrip(K, `${tool}/cards`, 6, tool));
+    appendStretch(content, section);
+  }
+
+  const weekly = AL({ name: '주간 TOP 5', dir: 'V', gap: 'space/sm', align: 'MIN' });
+  appendStretch(weekly, await sectionHeading(K, '주간 TOP 5'));
+  await mobileRows(K, weekly, 5);
+  appendStretch(content, weekly);
+
+  const latest = AL({ name: '최신 업로드', dir: 'V', gap: 'space/md', align: 'MIN' });
+  appendStretch(latest, await sectionHeading(K, '최신 업로드'));
+  appendStretch(latest, await buildCardStrip(K, 'Latest/cards', 6, null, true));
+  appendStretch(content, latest);
+  return buildMobileShell(K, 'M/01-Home', content, 0);
+}
+
+/** M/02-Chart — 테이블 대신 리스트 행 */
+async function buildChartMobile(K) {
+  const content = mobileContent('Chart/content');
+  appendStretch(content, await pageTitle(K, '차트', '매일 00:00 갱신'));
+  const tabs = await tabRow(K, 'Chart/filters', ['종합 TOP 100', 'Suno TOP 50', 'Udio TOP 50', '장르별'], 0);
+  appendStretch(content, scrollViewport('Chart/filters-scroll', tabs));
+  content.appendChild(await buttonInstance('전체 재생', 'primary'));
+  const rows = AL({ name: 'Chart/list', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  await mobileRows(K, rows, 10);
+  appendStretch(content, rows);
+  return buildMobileShell(K, 'M/02-Chart', content, 1);
+}
+
+/** M/03-TrackDetail */
+async function buildTrackDetailMobile(K) {
+  const content = mobileContent('TrackDetail/content');
+
+  const head = AL({ name: 'TrackDetail/visual-header', dir: 'V', gap: 'space/md', align: 'CENTER' });
+  const art = box(K, 'cover', 300, 300, 'color/bg/elevated', 'radius/md');
+  bindSize(K, art, 'width', 'size/cover/hero');
+  bindSize(K, art, 'height', 'size/cover/hero');
+  head.appendChild(art);
+  head.appendChild(await txt(K, '새벽 세 시의 네온', 'text/h1', 'color/text/main'));
+  head.appendChild(await txt(K, '김하늘 · 업로드일 YYYY-MM-DD', 'text/caption', 'color/text/muted'));
+  const badges = AL({ name: 'badges', dir: 'H', gap: 'space/sm' });
+  badges.appendChild(await badgeInstance('suno', 'Suno'));
+  badges.appendChild(await badgeInstance('model', 'v4.5'));
+  head.appendChild(badges);
+  const actions = AL({ name: 'actions', dir: 'H', gap: 'space/sm' });
+  actions.appendChild(await buttonInstance('재생', 'primary'));
+  actions.appendChild(await buttonInstance('좋아요', 'ghost'));
+  head.appendChild(actions);
+  appendStretch(content, head);
+
+  const inspector = panel(K, 'PromptInspector', null, 'space/md');
+  inspector.appendChild(await txt(K, '프롬프트', 'text/h2', 'color/text/main'));
+  appendStretch(inspector, await promptField(K, '스타일 프롬프트', '80s synthpop, nostalgic, emotional female vocal, 120bpm'));
+  appendStretch(inspector, await promptField(K, '네거티브 프롬프트', '없음'));
+  inspector.appendChild(await buttonInstance('프롬프트 복사', 'ghost'));
+  appendStretch(content, inspector);
+
+  const lyrics = panel(K, '가사', null, 'space/md');
+  lyrics.appendChild(await txt(K, '가사', 'text/h2', 'color/text/main'));
+  lyrics.appendChild(await txt(K, '한글 가사 본문', 'text/body', 'color/text/muted'));
+  lyrics.appendChild(await buttonInstance('가사 펼치기', 'ghost'));
+  appendStretch(content, lyrics);
+
+  const artist = panel(K, '창작자 카드', null, 'space/md');
+  const line = AL({ name: 'artist/row', dir: 'H', gap: 'space/md', align: 'CENTER' });
+  const avatar = AL({ name: 'avatar', dir: 'H', gap: 0, pad: 'space/md' });
+  avatar.fills = [K.C('color/bg/elevated')];
+  bindRadius(avatar, K.R('radius/full'));
+  avatar.appendChild(await txt(K, '김', 'text/bodyB', 'color/text/main'));
+  line.appendChild(avatar);
+  const meta = AL({ name: 'artist/meta', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  meta.appendChild(await txt(K, '김하늘', 'text/bodyB', 'color/text/main'));
+  meta.appendChild(await txt(K, '곡 수', 'text/caption', 'color/text/muted'));
+  line.appendChild(meta);
+  meta.layoutGrow = 1;
+  line.appendChild(await buttonInstance('채널 가기', 'ghost'));
+  artist.appendChild(line);
+  fillCross(artist, line);
+  appendStretch(content, artist);
+  return buildMobileShell(K, 'M/03-TrackDetail', content, 1);
+}
+
+/** M/06-Upload — 모달이 아니라 풀스크린 페이지, 섹션 세로 스택 */
+async function buildUploadMobile(K) {
+  const content = mobileContent('Upload/content');
+  content.appendChild(await txt(K, '곡 업로드', 'text/h1', 'color/text/main'));
+  appendStretch(content, await buildUploadForm(K, 'empty', mobileInnerWidth(), 'space/md'));
+  return buildMobileShell(K, 'M/06-Upload', content, 2);
+}
+
+/** M/07-Library */
+async function buildLibraryMobile(K) {
+  const content = mobileContent('Library/content');
+  content.appendChild(await txt(K, '내 보관함', 'text/h1', 'color/text/main'));
+  const tabs = await tabRow(K, 'Library/tabs', ['좋아요한 곡', '내 플레이리스트', '내가 업로드한 곡'], 0);
+  appendStretch(content, scrollViewport('Library/tabs-scroll', tabs));
+  const rows = AL({ name: 'Library/liked', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  await mobileRows(K, rows, 6);
+  appendStretch(content, rows);
+  return buildMobileShell(K, 'M/07-Library', content, 2);
+}
+
+/** M/Player-Fullscreen — 미니바 탭으로 확장되는 풀스크린 플레이어 (라우트 변경 없음) */
+async function buildPlayerFullscreenMobile(K) {
+  const screen = AL({ name: 'M/Player-Fullscreen', dir: 'V', gap: 'space/lg', pad: 'space/lg', w: MOBILE_WIDTH, h: 844, align: 'MIN' });
+  screen.fills = [K.C('color/bg/base')];
+
+  const top = AL({ name: 'top', dir: 'H', gap: 'space/md', align: 'CENTER' });
+  top.appendChild(await glyph(K, '⌄', 'color/text/main', 'text/h2'));
+  top.appendChild(await txt(K, '재생 중', 'text/caption', 'color/text/muted'));
+  screen.appendChild(top);
+
+  const art = box(K, 'cover', 342, 342, 'color/brand/primary', 'radius/md');
+  screen.appendChild(art);
+  art.layoutSizingHorizontal = 'FILL';
+
+  const info = AL({ name: 'info', dir: 'H', gap: 'space/md', align: 'CENTER' });
+  const names = AL({ name: 'names', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  names.appendChild(await txt(K, '새벽 세 시의 네온', 'text/h1', 'color/text/main'));
+  names.appendChild(await txt(K, '김하늘', 'text/body', 'color/text/muted'));
+  info.appendChild(names);
+  names.layoutGrow = 1;
+  info.appendChild(await glyph(K, '♥', 'color/brand/primary', 'text/h2'));
+  screen.appendChild(info);
+  fillCross(screen, info);
+
+  const prog = AL({ name: 'progress', dir: 'V', gap: 'space/xs', align: 'MIN' });
+  prog.appendChild(slider(K, MOBILE_WIDTH - SPACES['space/lg'] * 2, 0.35));
+  const times = AL({ name: 'times', dir: 'H', gap: 'space/md', align: 'CENTER' });
+  times.appendChild(await txt(K, '1:12', 'text/caption', 'color/text/muted'));
+  const sp = figma.createFrame();
+  sp.name = 'spacer';
+  sp.resize(1, 1);
+  sp.fills = [];
+  times.appendChild(sp);
+  sp.layoutGrow = 1;
+  times.appendChild(await txt(K, '3:24', 'text/caption', 'color/text/muted'));
+  prog.appendChild(times);
+  fillCross(prog, times);
+  screen.appendChild(prog);
+  fillCross(screen, prog);
+
+  const controls = AL({ name: 'controls', dir: 'H', gap: 'space/xl', align: 'CENTER' });
+  controls.primaryAxisAlignItems = 'CENTER';
+  for (const g of ['⟲', '|◀', '▶', '▶|', '⤮']) controls.appendChild(await glyph(K, g, 'color/text/main', 'text/h1'));
+  screen.appendChild(controls);
+  fillCross(screen, controls);
+
+  const bottom = AL({ name: 'bottom', dir: 'H', gap: 'space/md', align: 'CENTER' });
+  bottom.primaryAxisAlignItems = 'SPACE_BETWEEN';
+  bottom.appendChild(slider(K, 160, 0.7));
+  bottom.appendChild(await glyph(K, '☰'));
+  screen.appendChild(bottom);
+  fillCross(screen, bottom);
+  return screen;
+}
+
+// ─────────────────────────────────────────────────────────────
 // 9. main()
 // ─────────────────────────────────────────────────────────────
 
@@ -1440,37 +2083,58 @@ async function main() {
     place(asComponent(await buildQueuePanel(K), 'QueuePanel'));
   }
 
+  const B = CONFIG.build;
   const screenPlan = [
-    ['PC/01-Home', CONFIG.build.homePC, buildHomePC],
-    ['PC/02-Chart', CONFIG.build.chartPC, buildChartPC],
-    ['PC/03-TrackDetail', CONFIG.build.trackDetailPC, buildTrackDetailPC],
-    ['PC/03-TrackDetail-Locked', CONFIG.build.trackDetailLockedPC, buildTrackDetailLockedPC],
+    // [프레임 이름, 켜짐 여부, 빌더, 페이지]
+    ['PC/01-Home', B.homePC, buildHomePC, PAGE_PC],
+    ['PC/02-Chart', B.chartPC, buildChartPC, PAGE_PC],
+    ['PC/03-TrackDetail', B.trackDetailPC, buildTrackDetailPC, PAGE_PC],
+    ['PC/03-TrackDetail-Locked', B.trackDetailLockedPC, buildTrackDetailLockedPC, PAGE_PC],
+    ['PC/04-Search', B.searchPC, (k) => buildSearchPC(k, false), PAGE_PC],
+    ['PC/04-Search-Empty', B.searchEmptyPC, (k) => buildSearchPC(k, true), PAGE_PC],
+    ['PC/05-Auth-Login', B.authLoginPC, (k) => buildAuthPC(k, false), PAGE_PC],
+    ['PC/05-Auth-Signup', B.authSignupPC, (k) => buildAuthPC(k, true), PAGE_PC],
+    ['PC/06-Upload-Empty', B.uploadEmptyPC, (k) => buildUploadPC(k, 'empty'), PAGE_PC],
+    ['PC/06-Upload-Filled', B.uploadFilledPC, (k) => buildUploadPC(k, 'filled'), PAGE_PC],
+    ['PC/06-Upload-Progress', B.uploadProgressPC, (k) => buildUploadPC(k, 'progress'), PAGE_PC],
+    ['PC/07-Library', B.libraryPC, (k) => buildLibraryPC(k, false), PAGE_PC],
+    ['PC/07-Library-Empty', B.libraryEmptyPC, (k) => buildLibraryPC(k, true), PAGE_PC],
+    ['PC/08-Playlist', B.playlistPC, (k) => buildPlaylistPC(k, false), PAGE_PC],
+    ['PC/08-Playlist-TitleEdit', B.playlistEditPC, (k) => buildPlaylistPC(k, true), PAGE_PC],
+    ['PC/09-Artist', B.artistPC, buildArtistPC, PAGE_PC],
+    ['PC/QueuePanel', B.queuePanelPC, buildQueuePanelPC, PAGE_PC],
+    ['M/01-Home', B.homeMobile, buildHomeMobile, PAGE_MOBILE],
+    ['M/02-Chart', B.chartMobile, buildChartMobile, PAGE_MOBILE],
+    ['M/03-TrackDetail', B.trackDetailMobile, buildTrackDetailMobile, PAGE_MOBILE],
+    ['M/06-Upload', B.uploadMobile, buildUploadMobile, PAGE_MOBILE],
+    ['M/07-Library', B.libraryMobile, buildLibraryMobile, PAGE_MOBILE],
+    ['M/Player-Fullscreen', B.playerFullscreenMobile, buildPlayerFullscreenMobile, PAGE_MOBILE],
   ];
-  const hasScreens = screenPlan.some(([, enabled]) => enabled);
+  const enabledScreens = screenPlan.filter(([, enabled]) => enabled);
 
-  if (hasScreens) {
-    const pcPage = await ensurePage(PAGE_PC);
-    await figma.setCurrentPageAsync(pcPage);
-    if (CONFIG.rebuild) {
-      clearByName(
-        pcPage,
-        screenPlan.filter(([, enabled]) => enabled).map(([name]) => name)
-      );
-    }
-
+  if (enabledScreens.length > 0) {
     const rendered = [];
-    let cursorX = 0;
-    for (const [, enabled, builder] of screenPlan) {
-      if (!enabled) continue;
-      const screen = await builder(K);
-      screen.x = cursorX;
-      screen.y = 0;
-      pcPage.appendChild(screen);
-      cursorX += screen.width + SPACES['space/2xl'];
-      rendered.push(screen);
+    for (const pageName of [PAGE_PC, PAGE_MOBILE]) {
+      const group = enabledScreens.filter(([, , , p]) => p === pageName);
+      if (group.length === 0) continue;
+
+      const page = await ensurePage(pageName);
+      await figma.setCurrentPageAsync(page);
+      if (CONFIG.rebuild) clearByName(page, group.map(([name]) => name));
+
+      let cursorX = 0;
+      for (const [name, , builder] of group) {
+        console.log(`[screen] ${name} 렌더 시작`);
+        const screen = await builder(K);
+        screen.x = cursorX;
+        screen.y = 0;
+        page.appendChild(screen);
+        cursorX += screen.width + SPACES['space/2xl'];
+        rendered.push(screen);
+      }
+      figma.viewport.scrollAndZoomIntoView(page.children);
     }
-    figma.viewport.scrollAndZoomIntoView(rendered);
-    figma.closePlugin(`${rendered.length}개 PC 프레임 렌더 완료`);
+    figma.closePlugin(`${rendered.length}개 프레임 렌더 완료: ${rendered.map((s) => s.name).join(', ')}`);
     return;
   }
 
