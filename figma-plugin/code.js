@@ -550,6 +550,7 @@ async function buildInput(K, placeholder, width = 320, state = 'default') {
   else {
     f.strokes = [K.C('color/border/subtle')];
     f.strokeWeight = 1;
+    f.strokeAlign = 'OUTSIDE'; // focus 링과 같은 방식이어야 상태별 높이가 같습니다
   }
 
   const t = await txt(K, placeholder, 'text/body', 'color/text/disabled');
@@ -561,7 +562,7 @@ async function buildInput(K, placeholder, width = 320, state = 'default') {
 
   const wrap = AL({ name: 'Input', dir: 'V', gap: 'space/xs', w: width, align: 'MIN' });
   wrap.appendChild(f);
-  f.layoutAlign = 'STRETCH';
+  fillCross(wrap, f);
   wrap.appendChild(await txt(K, '이메일 형식이 올바르지 않습니다', 'text/caption', 'color/text/muted'));
   return wrap;
 }
@@ -763,7 +764,8 @@ async function buildSidebar(K) {
 
   const up = await buildButton(K, '곡 업로드', 'primary');
   f.appendChild(up);
-  up.layoutAlign = 'STRETCH';
+  fillCross(f, up);
+  up.primaryAxisAlignItems = 'CENTER'; // 폭이 늘어나도 라벨은 가운데
   return f;
 }
 
@@ -792,7 +794,7 @@ async function buildBottomPlayer(K) {
 
   const center = AL({ name: 'center', dir: 'V', gap: 'space/sm' });
   const controls = AL({ name: 'controls', dir: 'H', gap: 'space/lg' });
-  for (const g of ['⏮', '▶', '⏭']) {
+  for (const g of ['|◀', '▶', '▶|']) {
     controls.appendChild(await glyph(K, g, 'color/text/main', 'text/h2'));
   }
   center.appendChild(controls);
@@ -1000,10 +1002,16 @@ async function trackRowInstance(K, o = {}, state = 'default') {
   return instance;
 }
 
+/** 교차축을 가득 채웁니다. AL()이 HUG를 명시해 두므로 layoutAlign 대신 layoutSizing으로 지정합니다 */
+function fillCross(parent, child) {
+  if (parent.layoutMode === 'HORIZONTAL') child.layoutSizingVertical = 'FILL';
+  else child.layoutSizingHorizontal = 'FILL';
+  return child;
+}
+
 function appendStretch(parent, child) {
   parent.appendChild(child);
-  child.layoutAlign = 'STRETCH';
-  return child;
+  return fillCross(parent, child);
 }
 
 function innerContentWidth() {
